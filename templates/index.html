@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tren Mexicano TM-91</title>
+    
+    <!-- Hojas de Estilo con Jinja2 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/lobby.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/escenario.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tablero-local.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jugadores.css') }}">
+
+    <!-- Librerías Externas (CDN) -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+    <!-- L O B B Y -->
+    <div id="lobby-overlay">
+        <div class="lobby-contenedor">
+            <h1>🚂 TREN MEXICANO TM-91</h1>
+            <input type="text" id="ui-input-nombre" placeholder="Escribe tu nombre..." autocomplete="off">
+            
+            <div id="mapa-asientos" class="distribucion-circular">
+                <div class="centro-mesa">
+                    <span>MESA</span>
+                </div>
+                
+                <button class="ui-asiento-btn pos-1" data-asiento="1">1</button>
+                <button class="ui-asiento-btn pos-2" data-asiento="2">2</button>
+                <button class="ui-asiento-btn pos-3" data-asiento="3">3</button>
+                <button class="ui-asiento-btn pos-4" data-asiento="4">4</button>
+                <button class="ui-asiento-btn pos-5" data-asiento="5">5</button>
+                <button class="ui-asiento-btn pos-6" data-asiento="6">6</button>
+            </div>
+            <div id="controles-anfitrion">
+                <button id="ui-btn-inicio" class="btn-gold" style="display: none;">
+                    🚀 ¡ARRANCAR TREN!
+                </button>
+            </div>
+        </div>   
+    </div>
+
+    <!-- M E S A -->
+    <main id="mesa-verde" style="display: none;">
+        <div id="cintillo-noticias">
+            <!-- texto-noticia: Nomenclatura No Modificable -->
+            <span id="texto-noticia">Esperando inicio de partida...</span>
+        </div>
+        
+        <!-- EL POZO: Recuperado y Blindado -->
+        <div id="el-pozo">
+            <div class="pozo-domino-back">
+                <span class="pozo-icono-tren">🚂</span>
+                <span class="pozo-etiqueta">POZO</span>
+            </div>
+            <div class="pozo-badge" id="pozo-count">--</div>
+        </div>
+
+        <div id="vias-contenedor">
+            <!-- Aquí D3 dibujará la Estación Central y las vías -->
+        </div>
+        
+        <div id="zona-inferior">
+            <div id="contenedor-mano-local">
+                <div id="info-jugador-local">
+                    <div class="bloque-id">
+                        <div id="mi-identidad">
+                            <span id="label-asiento" class="etiqueta-asiento">Silla 1</span>
+                            <span id="texto-nombre">Nombre</span>
+                            <span id="tag-anfitrion" class="oculto">(Anfitrión)</span>
+                        </div>
+                        <!-- penny-status: Nomenclatura No Modificable -->
+                        <div id="penny-status" class="penny-off">🚂</div>
+                    </div>
+                    <div class="bloque-conteo">
+                        <span id="conteo-fichas-local">0</span>
+                        <small>fichas</small>
+                    </div>                  
+                </div>
+                
+                <div id="status-turno-local">
+                    <div id="botones-robar-pasar"> 
+                        <button id="btn-robar" class="btn-juego">🎲 ROBAR POZO</button>
+                        <button id="btn-pasar" class="btn-juego" style="display: none;">⏭️ PASAR TURNO</button>
+                    </div>
+                </div>
+
+                <div id="zona-mano" class="contenedor-fichas">
+                    <!-- Las fichas locales aparecen aquí -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+
+    <!-- M U L A  -->
+    <div id="anuncio-mula" class="anuncio-overlay oculto">
+        <div class="anuncio-contenido">
+            <h2 id="titulo-mula">¡MULA MAYOR!</h2>
+            <div id="ficha-mula-visual" class="ficha-grande"></div>
+            <p id="texto-mula-jugador"></p>
+        </div>
+    </div>
+
+    <!-- 🛰️ MONITOR DE COMUNICACIONES -->
+    <div id="panel-comunicaciones" class="panel-oculto">
+        <div class="cabecera-panel">
+            <span>🛰️ MONITOR DE COMUNICACIONES</span>
+            <button id="btn-cerrar-panel">×</button>
+        </div>
+        <div id="monitor-radio">
+            <div class="mini-cascada">SIN SEÑAL SDR</div>
+        </div>
+        <div id="caja-chat">
+            <div id="mensajes-chat"></div>
+            <div class="input-grupo">
+                <input type="text" id="input-msg" placeholder="Escribe a la red...">
+                <button id="btn-enviar">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="burbuja-comms">📡</button>
+
+    <!-- Scripts en orden de ejecución jerárquica -->
+    <script src="{{ url_for('static', filename='js/motor-geometrico.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/interfaz.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/radio.js') }}"></script>
+    
+</body>
+</html>

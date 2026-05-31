@@ -1,0 +1,219 @@
+/* ==========================================================
+   🎟️ CAPA: LOBBY (PANTALLA DE REGISTRO)
+   ========================================================== */
+
+#lobby-overlay {
+    position: fixed;
+    inset: 0;    
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.lobby-contenedor {
+    /* 1. DISEÑO */
+    background: #222;
+    padding: 30px 50px;
+    border-radius: 15px;
+    border: 2px solid var(--oro);
+    text-align: center;
+    
+    /* 2. DIMENSIONES */
+    min-width: 500px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.lobby-contenedor h1 {
+    margin: 0 0 20px 0;
+    font-size: 1.8rem;
+    color: var(--oro);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#ui-input-nombre {
+    /* 1. DIMENSIONES */
+    padding: 12px;
+    width: 150px;
+    
+    /* 2. DISEÑO */
+    border-radius: 8px;
+    border: 2px solid #555;
+    background: #111;
+    color: white;
+    font-size: 1rem;
+    text-align: center;
+    
+    /* 3. INTERACCIÓN */
+    outline: none;
+    margin-bottom: 20px;
+    transition: border-color 0.3s;
+}
+
+#ui-input-nombre:focus { 
+    border-color: var(--oro); 
+}
+
+#ui-input-nombre:disabled {
+    background-color: #2a2a2a;
+    color: #888;
+    cursor: not-allowed;
+}
+
+#mapa-asientos {
+    /* 1. DIMENSIONES Y FORMA */
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin: 40px auto; 
+    
+    /* 2. APARIENCIA */
+    background: var(--verde-mesa);
+    border-radius: 50%;
+    border: 6px solid #4e342e; /* Color madera de la mesa */
+}
+
+.centro-mesa {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    color: rgba(255, 215, 0, 0.3);
+    letter-spacing: 2px;
+}
+
+.ui-asiento-btn {
+    position: absolute;
+    width: 120px;
+    min-height: 60px;
+    background: #333;
+    border: 2px solid var(--oro);
+    border-radius: 10px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ui-asiento-btn strong {
+    font-size: 0.7rem;
+    color: var(--oro);
+    opacity: 0.8;
+}
+
+.ui-asiento-btn span {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: white;
+}
+
+.ui-asiento-btn:not(.ocupado):hover { 
+    background: var(--oro); 
+    color: #000; 
+    transform: scale(1.1); 
+}
+
+.ui-asiento-btn:not(.ocupado):hover strong {
+    color: #000;
+}
+
+.ui-asiento-btn.ocupado strong {
+    color: var(--oro) !important; /* Dorado brillante */
+    opacity: 1 !important;
+}
+
+.ui-asiento-btn.ocupado span {
+    color: #ffffff !important;   /* Blanco puro */
+    opacity: 1 !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* Sombra para que resalte del fondo */
+}
+
+.ui-asiento-btn.ocupado { 
+    background: rgba(40, 40, 40, 0.8) !important;
+    border-color: var(--oro-oscuro) !important;
+    color: #777;
+    cursor: not-allowed; 
+}
+
+#controles-anfitrion {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+
+/* ==========================================================
+    EL ANFITRIÓN
+========================================================== */
+
+.ui-asiento-btn.es-anfitrion,
+.ui-asiento-btn.pos-1.ocupado {
+    border: 3px solid var(--oro) !important;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6) !important;
+    background: rgba(45, 35, 10, 0.95) !important;
+}
+
+.ui-asiento-btn.es-anfitrion strong,
+.ui-asiento-btn.pos-1.ocupado strong {
+    color: var(--oro) !important;
+    opacity: 1 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    display: block;
+    min-height: 14px; /* Mantiene el espacio aunque esté vacío */
+}
+
+
+.ui-asiento-btn.es-anfitrion span,
+.ui-asiento-btn.pos-1.ocupado span {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 3px #000;
+}
+
+
+.ui-asiento-btn.pos-1.ocupado strong:empty::before {
+    content: "ANFITRIÓN";
+    font-size: 0.7rem;
+}
+
+
+#ui-btn-inicio {
+    padding: 15px 35px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    background: linear-gradient(to bottom, var(--oro), var(--oro-oscuro));
+    color: #311b02;
+    border: none;
+    border-radius: 50px;
+    display: block;
+    margin: 60px auto 20px auto; /* Margen superior amplio para que baje de la mesa */  
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
+}
+
+#ui-btn-inicio:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.pos-1 { top: -15%; left: 50%; transform: translateX(-50%); } 
+.pos-2 { top: 15%;  left: 90%; } 
+.pos-3 { top: 65%;  left: 90%; } 
+.pos-4 { bottom: -15%; left: 50%; transform: translateX(-50%); } 
+.pos-5 { top: 65%;  left: -20%; } 
+.pos-6 { top: 15%;  left: -20%; }
+
+
+.pos-1:not(.ocupado):hover, 
+.pos-4:not(.ocupado):hover {
+    transform: translateX(-50%) scale(1.1) !important;
+}

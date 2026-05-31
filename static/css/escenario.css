@@ -1,0 +1,480 @@
+/* ==========================================================
+   🌿 MESA VERDE Y ESCENARIO CENTRAL - NOTICIAS - POZO
+========================================================== */
+
+#mesa-verde {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--verde-mesa);
+    overflow: hidden;
+    cursor: grab;
+}
+
+#cintillo-noticias {
+    position: absolute;
+    top: 12px !important;   
+    left: 30% !important; 
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    padding: 3px 12px;
+    font-size: 0.85rem;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s ease;
+    pointer-events: none;
+}
+
+#burbuja-comms {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--oro);
+    border: none;
+    font-size: 1.5rem;
+    z-index: 2000;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+#panel-comunicaciones {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100vh;
+    background: rgba(20, 20, 20, 0.9);
+    backdrop-filter: blur(10px);
+    z-index: 2100;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    border-left: 1px solid var(--oro);
+}
+
+.panel-oculto { transform: translateX(100%); }
+
+/* Estilos del chat */
+#caja-chat { flex: 1; display: flex; flex-direction: column; padding: 10px; }
+#mensajes-chat { flex: 1; overflow-y: auto; color: white; font-size: 0.8rem; margin-bottom: 10px; }
+
+#texto-noticia {
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    letter-spacing: 0.5px;
+}
+
+#el-pozo {
+    position: absolute;
+    top: 25px;   
+    left: 20%;
+    transform: translateX(-50%);
+    z-index: 999;
+    width: 60px;
+    height: 90px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1b100c 0%, #3e2723 100%); /* Tono madera / cobre */
+    border: 2px solid var(--oro);
+    box-shadow: 
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        3px 3px 0px #111,
+        6px 6px 0px #222,
+        9px 9px 15px rgba(0,0,0,0.6); /* Efecto 3D de pila de fichas */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+#el-pozo:hover {
+    transform: translateX(-50%) scale(1.05) translate(-2px, -2px);
+    box-shadow: 
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        4px 4px 0px #111,
+        8px 8px 0px #222,
+        12px 12px 20px rgba(0,0,0,0.7);
+}
+
+#el-pozo:active {
+    transform: translateX(-50%) scale(0.98) translate(1px, 1px);
+    box-shadow: 
+        0 1px 0 rgba(255,255,255,0.2) inset,
+        1px 1px 0px #111,
+        2px 2px 0px #222,
+        3px 3px 5px rgba(0,0,0,0.5);
+}
+
+.pozo-domino-back {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.pozo-icono-tren {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    animation: floating-train 3s ease-in-out infinite;
+}
+
+.pozo-etiqueta {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: var(--oro);
+    text-shadow: 1px 1px 2px black;
+    margin-top: 4px;
+}
+
+.pozo-badge {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    background: radial-gradient(circle, #e74c3c 0%, #c0392b 100%); /* Rojo vibrante */
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 10px rgba(231, 76, 60, 0.6);
+    z-index: 10;
+}
+
+@keyframes floating-train {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+    100% { transform: translateY(0px); }
+}
+
+/* ==========================================================
+   ESTACION VÍAS Y RIELES
+========================================================== */
+.valor-estacion {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px black;
+}
+
+.titulo-estacion {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.8);
+}
+
+#vias-contenedor {
+    position: absolute;
+    top: 50%; /* El contenedor es el que se centra en la mesa */
+    left: 50%;
+    width: 0px;  /* Punto de origen invisible */
+    height: 0px;
+    pointer-events: none; 
+
+}
+
+/* ==========================================================
+   🌳 NODOS FICHAS GEOMÉTRICOS (FICHAS FLOTANTES Y ETIQUETAS)
+========================================================== */
+#vias-contenedor .nodo-ficha {
+    position: absolute;
+    top: 0;   /* Los nodos nacen en el centro del contenedor */
+    left: 0;
+    margin: 0;
+    z-index: 60;
+}
+
+#vias-contenedor div[id^="ancla-"] {
+    display: none !important;
+}
+
+.etiqueta-via-d3 {
+    color: var(--oro);
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+    pointer-events: none;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+#vias-contenedor .ficha.mesa {
+    transform-origin: center center;
+    width: var(--ficha-alto) !important;
+    height: var(--ficha-ancho) !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Línea divisoria para fichas horizontales en mesa */
+#vias-contenedor .ficha.mesa::before {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    transform: translateX(-50%);
+    box-shadow: 1px 0 0 rgba(255,255,255,0.7);
+}
+
+#vias-contenedor .ficha.mesa.mula-radial {
+    width: var(--ficha-ancho) !important; 
+    height: var(--ficha-alto) !important;
+    border: 2px solid #ffcc00 !important; /* Borde dorado para destacar */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.8) !important;
+    flex-direction: column !important;
+    z-index: 999 !important; /* Muy por encima del resto */
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Línea divisoria para mulas en mesa (verticales) */
+#vias-contenedor .ficha.mesa.mula-radial::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform: translateY(-50%);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.7);
+}
+
+/* ==========================================================
+   👻 PUNTAS FANTASMAS (MARCADORES ILUMINADOS)
+========================================================== */
+.fantasma-geometrico {
+    position: relative;
+    width: var(--ficha-alto);
+    height: var(--ficha-ancho);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fantasma-forma {
+    width: var(--ficha-alto);
+    height: var(--ficha-ancho);
+    border: 2px dashed currentColor;
+    border-radius: var(--ficha-radio);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.fantasma-geometrico:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.fantasma-geometrico.iluminada {
+    cursor: pointer;
+    /* La animación y color se manejan vía inline JS para colores dinámicos */
+}
+
+.punta-fantasma {
+    pointer-events: auto !important; /* Asegura que responda al ratón */
+    z-index: 100; /* Ponlo por encima de los enlaces/líneas */
+}
+
+.nodo-ficha {
+    pointer-events: auto; /* Pero que los nodos individuales SÍ los atrapen */
+}
+
+.nodo-ficha.estacion-central {
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, #3e2723 0%, #1b100c 100%); /* Tono madera oscura */
+    border: 4px solid #ffcc00; /* Borde dorado */
+    border-radius: 50%; /* Redonda para parecer una estacion central */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.estacion-base {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, #2d1f18 0%, #170f0b 100%); /* Madera oscura de caoba */
+    border-radius: 50%;
+    box-shadow: 
+        inset 0 0 15px rgba(0,0,0,0.6),
+        0 8px 10px rgba(0,0,0,0.5),
+        0 0 0 4px #ffcc00; /* Borde dorado premium */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+.estacion-base::before {
+    content: '';
+    position: absolute;
+    top: -8px; left: -8px; right: -8px; bottom: -8px;
+    border-radius: 50%;
+    border: 8px dashed #ffcc00; /* Vías doradas discontinuas */
+    z-index: -1;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+}
+
+.vias-decorativas {
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+        from 0deg,
+        transparent 0deg 8deg,
+        rgba(255, 204, 0, 0.2) 8deg 12deg
+    );
+    border: 4px solid rgba(255, 204, 0, 0.4);
+    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.5);
+    opacity: 0.8;
+    z-index: 2;
+}
+
+.tren-logo {
+    font-size: 2rem;
+    z-index: 3;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.estacion-texto {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #eae6d5; /* Color marfil claro para contraste */
+    letter-spacing: 2.5px;
+    z-index: 3;
+    opacity: 0.9;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.estacion-ficha {
+    z-index: 10 !important;
+    transform: rotate(90deg) !important;
+}
+
+.punta-fantasma.iluminada {
+    animation: pulso-iluminacion 2s infinite ease-in-out;
+    cursor: pointer;
+}
+
+.etiqueta-flotante {
+    position: absolute;
+    top: 100%;
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+    text-shadow: 1px 1px 2px black;
+}
+
+/* ROTACIÓN INTERNA DE FICHAS D3 */
+#vias-contenedor .ficha.mesa .cara-ficha {
+    transform: rotate(90deg); /* Alinea el número con la dirección de avance */
+}
+
+#vias-contenedor {
+    pointer-events: none; /* Que el contenedor no atrape clics */
+}
+
+#vias-contenedor .ficha.mesa.mula-radial .cara-ficha {
+    transform: rotate(0deg); 
+}
+
+/* SEPARACIÓN (LÍNEA DIVISORIA) D3 */
+#vias-contenedor .ficha.mesa .cara-conexion {
+    border: none !important; 
+    height: 100% !important;
+    width: 50% !important;
+    flex: 0 0 50% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+#vias-contenedor .ficha.mesa .cara-punta {
+    flex: 0 0 50% !important;
+}
+
+#vias-contenedor .ficha.mesa.mula-radial .cara-conexion {
+    border: none !important;
+    width: 100% !important;
+    height: 50% !important;
+    flex: 0 0 50% !important;
+    box-shadow: none !important;
+}
+
+#vias-contenedor .ficha.mesa.mula-radial .cara-punta {
+    flex: 0 0 50% !important;
+}
+
+
+/* ==========================================================
+    🎴 MULA RADIAL
+   ========================================================== */
+
+/* Esto centra la ficha en el modal de Mula Mayor */
+#ficha-mula-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%; 
+}
+
+.ficha.mula-radial {
+    transform: rotate(90deg); 
+    margin: 10px 0; /* Espacio extra porque al girar ocupa más ancho */
+}
+
+.mula-radial {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    filter: brightness(1.1); 
+}
+
+/* Evitamos sobreescribir el transform inline de las fichas del tablero (dentro de #vias-contenedor) */
+.mula-radial:not(#vias-contenedor *) {
+    transform: rotate(0deg) !important;
+}
+
+
+
+@keyframes pulso-iluminacion {
+    0% { filter: drop-shadow(0 0 5px currentColor); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 15px currentColor); transform: scale(1.05); }
+    100% { filter: drop-shadow(0 0 5px currentColor); transform: scale(1); }
+}
+
+
+@keyframes pulsoTurno {
+    0%   { box-shadow: 0 0 5px var(--oro); }
+    50%  { box-shadow: 0 0 25px var(--oro); }
+    100% { box-shadow: 0 0 5px var(--oro); }
+}
+
+/* Animación de pulso para tu casa */
+@keyframes pulsoAmarillo {
+    0% { box-shadow: inset 0 0 20px rgba(255, 204, 0, 0.2); }
+    50% { box-shadow: inset 0 0 40px rgba(255, 204, 0, 0.4), 0 0 10px rgba(255, 204, 0, 0.3); }
+    100% { box-shadow: inset 0 0 20px rgba(255, 204, 0, 0.2); }
+}
+

@@ -1,0 +1,248 @@
+/* ==========================================================
+   Tablero Local
+========================================================== */
+
+#zona-inferior {
+    position: fixed;
+    bottom: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4000;
+    height: 75px;
+    width: 65%;
+    max-width: 1400px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center; 
+    pointer-events: none;
+}
+
+#contenedor-mano-local {
+    background: rgba(10, 25, 10, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    padding: 0px 15px;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;      
+    box-sizing: border-box;
+    pointer-events: auto;
+    overflow: visible;
+}
+
+#info-jugador-local {
+    position: relative;
+    width: 100px;           
+    height: 100%;   
+    background: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(5px);      
+    padding: 5px;
+    border-radius: 8px;
+    border-right: 2px solid var(--oro);     
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+
+#info-jugador-local {
+    border: 2px solid transparent; /* El color lo pondrá JS */
+    transition: all 0.4s ease;     
+}
+
+.bloque-id, #mi-identidad {
+    display: flex;
+    flex-direction: column; 
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.etiqueta-asiento {
+    background: #ffd700;
+    color: #000;
+    padding: 1px 3px; 
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 0.65rem; 
+    line-height: 1;
+    margin-bottom: 0;
+}
+
+#texto-nombre {
+    color: #ffd700; /* Usamos oro directo si var(--oro) falla */
+    font-weight: bold;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%;
+}
+
+#tag-anfitrion {
+    font-size: 0.7rem;
+    color: #00ff00; 
+    font-style: italic;
+}
+
+.bloque-conteo {
+    display: flex;
+    align-items: baseline; 
+    gap: 2px;              
+    margin-top: 0px;      
+    line-height: 1;       
+}
+
+#conteo-fichas-local {
+    font-size: 1.1rem;     
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); 
+}
+
+.bloque-conteo small {
+    font-size: 0.65rem;
+    color: #aaa;           
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================
+   BOTONES ROBAR PASAR
+========================================================== */
+#status-turno-local {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px; 
+    width: 100px;      
+    height: 100%;      
+    border-left: 1px solid rgba(255, 215, 0, 0.2);
+    border-right: 1px solid rgba(255, 215, 0, 0.2);
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+#botones-robar-pasar {
+    display: flex; 
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+    width: 100%;  
+    margin: 0;
+    padding: 0;
+}
+
+.btn-juego {
+    background: #b22222; 
+    color: white;
+    border: 1px solid #ffd700;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    width: 100px;            /* Ancho fijo para que la columna sea estable */
+    text-transform: uppercase;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.btn-juego:hover {
+    background: #ff4500;
+    transform: scale(1.05);
+}
+
+.btn-juego:active {
+    transform: scale(0.95);
+}
+
+#btn-robar, #btn-pasar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#btn-robar { background: #f1c40f; color: #000; }
+#btn-pasar { background: #e67e22; color: #fff; }
+
+
+#zona-mano {
+    display: flex;
+    flex-direction: row; 
+    flex-wrap: nowrap;   
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    padding: 5px 10px;
+    height: 100%; 
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: visible !important;     
+    scrollbar-width: thin;  
+    scrollbar-color: var(--oro) transparent;
+}
+
+#zona-mano::-webkit-scrollbar {
+    height: 4px;
+}
+#zona-mano::-webkit-scrollbar-thumb {
+    background: var(--oro);
+    border-radius: 10px;
+}
+
+/* ==========================================================
+   FICHAS
+========================================================== */
+.ficha.jugable {
+    border-color: var(--oro) !important;
+    box-shadow: 0 0 15px var(--oro), inset 0 0 5px white !important;
+    z-index: 1000;
+    cursor: pointer;
+    transform: translateY(-30px) scale(1.1);
+    transition: transform 0.2s ease-out;
+}
+
+.ficha.jugable:hover {
+    transform: translateY(-8px) scale(1.05);
+    border-color: #fff !important;
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.8) !important;
+    z-index: 50;
+}
+
+.ficha-activa {
+    border: 3px solid #00ffcc !important; 
+    transform: scale(1.3) translateY(-15px);
+    z-index: 2000 !important;
+    border-color: var(--oro) !important;
+    box-shadow: 0 0 15px var(--oro), 
+                0 0 5px rgba(255, 215, 0, 0.8),
+                3px 10px 15px rgba(0,0,0,0.5); 
+}
+
+.ficha.bloqueada {
+    opacity: 0.4;
+    filter: grayscale(100%) brightness(0.7);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.ficha.normal:hover {
+    /* Un pequeño levantamiento para indicar que la ficha es interactiva */
+    transform: translateY(-5px);
+}

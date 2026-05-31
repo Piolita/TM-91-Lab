@@ -1,0 +1,19 @@
+# .gitignore - Escudo de Privacidad Veracruzano
+
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Python y Compilados
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+Thumbs.db
+
+# Datos de persistencia (El Notario genera el suyo localmente)
+partida_save.json
+
+# Logs del servidor
+*.log

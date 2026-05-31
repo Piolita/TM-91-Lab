@@ -1,0 +1,102 @@
+/* ==========================================================
+    🪪 GAFETES DE JUGADORES Y TURNOS
+   ========================================================== */
+#capa-gafetes-remotos {
+    position: fixed;    /* 👈 Se queda quieto mientras la mesa se mueve */
+    inset: 0;           /* Cubre toda la pantalla */
+    pointer-events: none; /* 👈 Crucial: deja que el ratón "toque" la mesa verde */
+    z-index: 3500;      /* Por encima de la mesa, pero debajo de la zona-inferior */
+}
+
+.jugador-gafete {
+    position: absolute;
+    z-index: 10;
+    background: rgba(30, 29, 29, 0.85);
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 10px;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    transition: all 0.3s ease;
+}
+
+.etiqueta-asiento {
+    background: var(--oro); /* O #ffd700 si prefieres amarillo puro */
+    color: #000;            /* Texto negro para que resalte */
+    font-size: 0.65rem;     /* Chiquito pero legible */
+    font-weight: 800;
+    padding: 1px 6px;       /* Un poco de aire a los lados */
+    border-radius: 4px;     /* Bordes suavizados */
+    margin-bottom: 2px;     /* Separación con el nombre del jugador */
+    text-transform: uppercase; /* "SILLA 1" en mayúsculas se ve más pro */
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.jugador-gafete.turno-activo, 
+#info-jugador-local.turno-activo {
+    /* 1. BRILLO DORADO */
+    border: 3px solid var(--oro) !important;
+    background: rgba(60, 50, 0, 0.9) !important;
+    box-shadow: 0 0 25px var(--oro), 
+                0 0 50px rgba(255, 215, 0, 0.5) !important;
+    animation: latido-turno 2s infinite;
+    /* 2. ÉNFASIS VISUAL */
+    transform: scale(1.05);
+    z-index: 100;
+    border-radius: 8px; /* Cambio sutil de forma al activarse */
+    transition: all 0.4s ease;
+}
+
+.gafete-info {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.gafete-info span {
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.mini-mazo {
+    display: flex;
+    flex-direction: row; 
+    justify-content: center;
+    gap: 0;
+    align-items: center;
+    margin-top: 4px;
+    padding-left: 6px; 
+}
+
+.ficha-oculta {
+    width: 14px;
+    height: 22px;
+    background: linear-gradient(135deg, #1a1a1a, #333);
+    border: 1px solid var(--oro);
+    border-radius: 2px;
+    margin-left: -6px; 
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.ficha-oculta:first-child { 
+    margin-left: 0; 
+}
+
+.ficha-oculta:hover { 
+    transform: translateY(-4px); 
+    z-index: 10;
+    border-color: var(--oro);
+ }
+
+
+ @keyframes latido-turno {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(241, 196, 15, 0.5); }
+    100% { transform: scale(1); }
+}
