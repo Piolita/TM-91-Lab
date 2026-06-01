@@ -95,15 +95,20 @@ const interfaz = {
                      distPaso = MotorGeometrico.config.radioEstacion; 
                 }
 
-                // Desplazamiento lateral para la primera ficha de cada rama
-                // Solo se aplica en el nodo directo de la mula (rama izq/der)
+                // REEMPLAZA EL BLOQUE ANTERIOR POR ESTE CORREGIDO:
                 let perpX = 0, perpY = 0;
                 if (f.rama === 'izq' || f.rama === 'der') {
                     const perpRad = rad + Math.PI / 2;
-                    const perpOffset = MotorGeometrico.config.anchoFicha / 2 + MotorGeometrico.config.separacion;
+                    
+                    // 1. Calculamos un espacio lateral más amplio sumando la mitad del largo de la nueva ficha
+                    const perpOffset = (MotorGeometrico.config.anchoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
                     const signPerp = (f.rama === 'izq') ? -1 : 1;
+                    
                     perpX = signPerp * Math.cos(perpRad) * perpOffset;
                     perpY = signPerp * Math.sin(perpRad) * perpOffset;
+                    
+                    // 2. ¡CLAVE! Forzamos a que no avance hacia el frente de la vía principal
+                    distPaso = 0; 
                 }
 
                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
@@ -140,14 +145,20 @@ const interfaz = {
                      distPaso = MotorGeometrico.config.radioEstacion;
                 }
 
-                // Desplazamiento lateral para fantasmas de ramas izq/der
+                // REEMPLAZA ESE BLOQUE DE LOS FANTASMAS POR ESTE CORREGIDO:
                 let perpX = 0, perpY = 0;
                 if (punta.rama === 'izq' || punta.rama === 'der') {
                     const perpRad = rad + Math.PI / 2;
-                    const perpOffset = MotorGeometrico.config.anchoFicha / 2 + MotorGeometrico.config.separacion;
+                    
+                    // Calculamos el espacio lateral exacto para el fantasma (usando largoActual)
+                    const perpOffset = (MotorGeometrico.config.anchoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
                     const signPerp = (punta.rama === 'izq') ? -1 : 1;
+                    
                     perpX = signPerp * Math.cos(perpRad) * perpOffset;
                     perpY = signPerp * Math.sin(perpRad) * perpOffset;
+                    
+                    // Forzamos a que el fantasma no se vaya hacia adelante en la vía principal
+                    distPaso = 0;
                 }
 
                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
