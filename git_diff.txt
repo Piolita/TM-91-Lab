@@ -1,0 +1,533 @@
+diff --git a/static/js/interfaz.js b/static/js/interfaz.js
+index 43cd639..b924ec3 100644
+--- a/static/js/interfaz.js
++++ b/static/js/interfaz.js
+@@ -5,7 +5,7 @@ window.fichaSeleccionadaParaTirar = null;
+ 
+ const interfaz = {
+ 
+-    marcarAsientoOcupado: function(asiento_id, nombre, esAnfitrion = false) {
++    marcarAsientoOcupado: function (asiento_id, nombre, esAnfitrion = false) {
+         const btn = document.querySelector(`.ui-asiento-btn[data-asiento="${asiento_id}"]`);
+         if (btn) {
+             btn.classList.add('ocupado');
+@@ -13,7 +13,7 @@ const interfaz = {
+             if (esAnfitrion) {
+                 btn.classList.add('es-anfitrion');
+             }
+-            
++
+             // Decidimos el nombre a mostrar (Democrático: solo texto)
+             let nombreMostrar = esAnfitrion ? `Anfitrión ${nombre}` : nombre;
+ 
+@@ -24,40 +24,41 @@ const interfaz = {
+         }
+     },
+ 
+-    obtenerPuntas: function(viaFichas, estado) {
++    obtenerPuntas: function (viaFichas, estado) {
+         let puntas = new Map();
+         const valEstacion = estado.estacion_central ? Number(estado.estacion_central.l1) : 12;
+         puntas.set("estacion|unica", { padreId: "estacion", rama: "unica", valor: valEstacion });
+-        
++
+         viaFichas.forEach(f => {
+             const pid = f.padre_id || "estacion";
+             const rama = f.rama || "unica";
+             puntas.delete(`${pid}|${rama}`);
+-            
++
+             const v1 = Number(f.v1 !== undefined ? f.v1 : f.l1);
+             const v2 = Number(f.v2 !== undefined ? f.v2 : f.l2);
+-            
++
+             if (v1 === v2) {
+                 puntas.set(`${f.id}|izq`, { padreId: f.id, rama: "izq", valor: v2 });
+                 puntas.set(`${f.id}|der`, { padreId: f.id, rama: "der", valor: v2 });
+             } else {
+-                puntas.set(`${f.id}|unica`, { padreId: f.id, rama: "unica", valor: v2 });
++                const ramaDestino = (f.rama === 'izq' || f.rama === 'der') ? f.rama : "unica";
++                puntas.set(`${f.id}|${ramaDestino}`, { padreId: f.id, rama: ramaDestino, valor: v2 });
+             }
+         });
+-        
++
+         return Array.from(puntas.values());
+     },
+ 
+-    renderizarVias: function(estado) {
+-        const permisos = estado.permisos_vias_tren; 
++    renderizarVias: function (estado) {
++        const permisos = estado.permisos_vias_tren;
+         if (!permisos) return;
+ 
+         const miID = String(window.mi_asiento);
+         const fichaSel = window.fichaSeleccionadaParaTirar;
+         const coloresVias = { 1: '#e17055', 2: '#0984e3', 3: '#00b894', 4: '#f1c40f', 5: '#6c5ce7', 6: '#d63031' };
+-        
++
+         const layout = [];
+-        
++
+         // Estación
+         layout.push({
+             id: 'estacion', tipo: 'estacion',
+@@ -70,52 +71,67 @@ const interfaz = {
+             const permiso = permisos[idAsiento];
+             const puedoTirarAqui = permiso ? permiso.permiso : false;
+             const colorVia = coloresVias[idAsiento] || '#dfe6e9';
+-            
++
+             let dist = (parseInt(idAsiento) - parseInt(miID) + 6) % 6;
+             const anguloSilla = { 0: 90, 1: 150, 2: 210, 3: 270, 4: 330, 5: 30 };
+             const grados = anguloSilla[dist];
+             const rad = (grados * Math.PI) / 180;
+             const nodosCoords = { "estacion": { x: 0, y: 0, anguloBase: grados, esMula: true } };
+ 
+-            fichas.forEach((f) => {
++            // REEMPLAZA EL INICIO DEL BUCLE DE FICHAS POR ESTE:
++            let contadorFichasEnVia = 0; // Pon esto justo antes del fichas.forEach si es necesario
++
++            fichas.forEach((f, indice) => {
+                 const padreId = f.padre_id || "estacion";
+                 const padre = nodosCoords[padreId] || nodosCoords["estacion"];
+-                // ✅ Ramas PARALELAS: mismo ángulo que la vía, sin divergencia angular
++
+                 let angulo = padre.anguloBase;
+-                
+-                const rad = (angulo * Math.PI) / 180;
+                 const esMula = Number(f.v1) === Number(f.v2);
++
++                // 🐍 LÓGICA DE LA SERPIENTE INTELIGENTE 🐍
++                if (f.rama !== 'izq' && f.rama !== 'der') {
++                    // Solo intentamos doblar si ya pasamos la tercera ficha e IMPORTANTE: si la ficha actual NO es mula
++                    if (indice >= 3 && !esMula) {
++                        const bloque = Math.floor((indice - 3) / 3);
++                        if (bloque % 2 === 0) {
++                            angulo += 90; // Curva a la derecha
++                        } else {
++                            angulo -= 90; // Curva a la izquierda
++                        }
++                    }
++                    // Si 'esMula' es true, no entra al 'if' y mantiene exactamente el 'padre.anguloBase' recto.
++                }
++
++                const rad = (angulo * Math.PI) / 180;
+                 const padreEsMula = padre.esMula;
+-                
++
+                 const largoPadre = padreEsMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
+                 const largoActual = esMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
+-                
++
+                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+                 if (padreId === "estacion") {
+-                     distPaso = MotorGeometrico.config.radioEstacion; 
++                    distPaso = MotorGeometrico.config.radioEstacion;
+                 }
+ 
+-                // REEMPLAZA EL BLOQUE ANTERIOR POR ESTE CORREGIDO:
++
+                 let perpX = 0, perpY = 0;
+                 if (f.rama === 'izq' || f.rama === 'der') {
+                     const perpRad = rad + Math.PI / 2;
+-                    
+-                    // 1. Calculamos un espacio lateral más amplio sumando la mitad del largo de la nueva ficha
++
+                     const perpOffset = (MotorGeometrico.config.anchoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+                     const signPerp = (f.rama === 'izq') ? -1 : 1;
+-                    
++
+                     perpX = signPerp * Math.cos(perpRad) * perpOffset;
+                     perpY = signPerp * Math.sin(perpRad) * perpOffset;
+-                    
+-                    // 2. ¡CLAVE! Forzamos a que no avance hacia el frente de la vía principal
+-                    distPaso = 0; 
++
++                    distPaso = MotorGeometrico.config.anchoFicha / 2;
+                 }
+ 
+                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
+                 const py = padre.y + perpY + Math.sin(rad) * distPaso;
+-                
++
+                 nodosCoords[f.id] = { x: px, y: py, anguloBase: angulo, esMula: esMula };
+-                
++
+                 layout.push({
+                     id: `mesa-ficha-${f.id}`, tipo: 'ficha', esMula: esMula, ficha: f,
+                     x: px, y: py, rotacion: angulo
+@@ -127,38 +143,67 @@ const interfaz = {
+                 const fantasmaId = `fantasma-${idAsiento}-${punta.padreId}-${punta.rama}`;
+                 const fichaSel = window.fichaSeleccionadaParaTirar;
+                 let iluminada = (puedoTirarAqui && fichaSel && (Number(fichaSel.l1) === Number(punta.valor) || Number(fichaSel.l2) === Number(punta.valor)));
+-                
++
+                 // Fantasma — también con ramas paralelas
+                 const padreId = punta.padreId || "estacion";
+                 const padre = nodosCoords[padreId] || nodosCoords["estacion"];
+-                // ✅ Mismo ángulo que la vía (sin divergencia angular)
++
++                // 1. DETERMINAR EL ÁNGULO CORRECTO DEL FANTASMA
+                 let angulo = padre.anguloBase;
+-                
++
++                if (punta.rama === 'izq' || punta.rama === 'der') {
++                    // Si el fantasma sale de una ficha que está en la rama pero NO es la mula misma,
++                    // debemos rotar el ángulo de proyección para que continúe hacia afuera.
++                    if (!padre.esMula) {
++                        const modificadorAngulo = (punta.rama === 'izq') ? -90 : 90;
++                        angulo = padre.anguloBase + modificadorAngulo;
++                    }
++                } else {
++                    // Lógica de la serpiente para fichas normales en la vía principal
++                    const indiceFantasma = fichas.length;
++                    if (indiceFantasma >= 3) {
++                        const bloque = Math.floor((indiceFantasma - 3) / 3);
++                        if (bloque % 2 === 0) {
++                            angulo += 90;
++                        } else {
++                            angulo -= 90;
++                        }
++                    }
++                }
++
+                 const rad = (angulo * Math.PI) / 180;
+                 const padreEsMula = padre.esMula;
+-                
++
+                 const largoPadre = padreEsMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
+-                const largoActual = MotorGeometrico.config.largoFicha; 
+-                
++                const largoActual = MotorGeometrico.config.largoFicha;
++
+                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+                 if (padreId === "estacion") {
+-                     distPaso = MotorGeometrico.config.radioEstacion;
++                    distPaso = MotorGeometrico.config.radioEstacion;
+                 }
+ 
+-                // REEMPLAZA ESE BLOQUE DE LOS FANTASMAS POR ESTE CORREGIDO:
++                //  CÁLCULO DE COORDENADAS (PERPENDICULARES SOLO SI EL PADRE ES MULA)
+                 let perpX = 0, perpY = 0;
+                 if (punta.rama === 'izq' || punta.rama === 'der') {
+-                    const perpRad = rad + Math.PI / 2;
+-                    
+-                    // Calculamos el espacio lateral exacto para el fantasma (usando largoActual)
+-                    const perpOffset = (MotorGeometrico.config.anchoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+-                    const signPerp = (punta.rama === 'izq') ? -1 : 1;
+-                    
+-                    perpX = signPerp * Math.cos(perpRad) * perpOffset;
+-                    perpY = signPerp * Math.sin(perpRad) * perpOffset;
+-                    
+-                    // Forzamos a que el fantasma no se vaya hacia adelante en la vía principal
+-                    distPaso = 0;
++                    if (padre.esMula) {
++                        // El ángulo de la vía se usa para el desplazamiento lateral
++                        const viaRad = (padre.anguloBase * Math.PI) / 180;
++                        const perpRad = viaRad + Math.PI / 2;
++
++                        const perpOffset = (MotorGeometrico.config.largoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
++                        const signPerp = (punta.rama === 'izq') ? -1 : 1;
++
++                        perpX = signPerp * Math.cos(perpRad) * perpOffset;
++                        perpY = signPerp * Math.sin(perpRad) * perpOffset;
++
++                        distPaso = MotorGeometrico.config.anchoFicha / 2;
++                    } else {
++                        // Si el padre ya es la ficha de la rama (ej. 2/6), no hay desfase perpendicular.
++                        // Se desplaza puramente hacia adelante usando el nuevo ángulo corregido.
++                        perpX = 0;
++                        perpY = 0;
++                        distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
++                    }
+                 }
+ 
+                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
+@@ -177,17 +222,17 @@ const interfaz = {
+             MotorGeometrico.dibujar(layout);
+         }
+     },
+-    
+-    mostrarMesa: function(estado) {
++
++    mostrarMesa: function (estado) {
+         const lobby = document.getElementById('lobby-overlay');
+         const mesa = document.getElementById('mesa-verde');
+-        
+-        if(lobby) lobby.style.setProperty('display', 'none', 'important');
+-        if(mesa) mesa.style.display = 'flex';
+-        
++
++        if (lobby) lobby.style.setProperty('display', 'none', 'important');
++        if (mesa) mesa.style.display = 'flex';
++
+     },
+- 
+-    renderizarManoLocal: function(misDatos, estado) {
++
++    renderizarManoLocal: function (misDatos, estado) {
+         const contenedorMano = document.getElementById('zona-mano');
+         if (!contenedorMano || !misDatos) return;
+ 
+@@ -199,7 +244,7 @@ const interfaz = {
+         misDatos.mano.forEach(ficha => {
+             const puedeJugar = legales.some(e => Number(ficha.l1) === Number(e) || Number(ficha.l2) === Number(e));
+             let estadoVisual = esMiTurno ? (puedeJugar ? "jugable" : "bloqueada") : "normal";
+-            
++
+             // Si es la ficha que ya tenemos seleccionada, le ponemos la clase activa
+             if (window.fichaSeleccionadaParaTirar && window.fichaSeleccionadaParaTirar.id === ficha.id) {
+                 estadoVisual += " ficha-activa seleccionada";
+@@ -208,10 +253,11 @@ const interfaz = {
+             this.dibujarFicha('zona-mano', ficha, estadoVisual);
+         });
+     },
+-    
+-    renderizarPartida: function(estado) {
++
++    renderizarPartida: function (estado) {
+         if (!window.mi_asiento) {
+-            window.mi_asiento = localStorage.getItem('mi_asiento_dominio');}
++            window.mi_asiento = localStorage.getItem('mi_asiento_dominio');
++        }
+ 
+         this.mostrarMesa(estado);
+ 
+@@ -222,7 +268,7 @@ const interfaz = {
+                 const nombreAbridor = estado.jugador_mula_nombre || "Un jugador";
+                 const nombreSiguiente = estado.jugadores[estado.turno_actual_asiento]?.nombre || "el siguiente";
+                 this.anunciarMulaMayor(nombreAbridor, estado.estacion_central, nombreSiguiente);
+-                window.mulaAnunciada = true; 
++                window.mulaAnunciada = true;
+             }
+ 
+             this.renderizarVias(estado);
+@@ -238,44 +284,44 @@ const interfaz = {
+                 pozoCount.textContent = cantidadFichas;
+             }
+ 
+-                const miID = String(window.mi_asiento); 
+-                const misDatos = estado.jugadores[miID];
+-                const coloresVias = { 1: '#e17055', 2: '#0984e3', 3: '#00b894', 4: '#f1c40f', 5: '#6c5ce7', 6: '#d63031' };
+-                const miColor = coloresVias[miID] || '#dfe6e9';
++            const miID = String(window.mi_asiento);
++            const misDatos = estado.jugadores[miID];
++            const coloresVias = { 1: '#e17055', 2: '#0984e3', 3: '#00b894', 4: '#f1c40f', 5: '#6c5ce7', 6: '#d63031' };
++            const miColor = coloresVias[miID] || '#dfe6e9';
+ 
+-                // Aplicamos la identidad visual a la zona inferior
+-                const panelLocal = document.getElementById('info-jugador-local');
+-                if (panelLocal) {
+-                    panelLocal.style.borderColor = miColor;
+-                    panelLocal.style.boxShadow = `0 0 15px ${miColor}44`; // 44 es transparencia
+-                }
++            // Aplicamos la identidad visual a la zona inferior
++            const panelLocal = document.getElementById('info-jugador-local');
++            if (panelLocal) {
++                panelLocal.style.borderColor = miColor;
++                panelLocal.style.boxShadow = `0 0 15px ${miColor}44`; // 44 es transparencia
++            }
+ 
+-                if (misDatos) {
+-                    document.getElementById('texto-nombre').textContent = misDatos.nombre;
+-                    document.getElementById('label-asiento').textContent = `Silla ${miID}`;
+-                    document.getElementById('conteo-fichas-local').textContent = misDatos.mano.length;
++            if (misDatos) {
++                document.getElementById('texto-nombre').textContent = misDatos.nombre;
++                document.getElementById('label-asiento').textContent = `Silla ${miID}`;
++                document.getElementById('conteo-fichas-local').textContent = misDatos.mano.length;
+ 
+-                    // Llamada modular
+-                    this.renderizarManoLocal(misDatos, estado);
+-                }
++                // Llamada modular
++                this.renderizarManoLocal(misDatos, estado);
++            }
++
++            this.actualizarControlesRobarPasar(estado);
+ 
+-                this.actualizarControlesRobarPasar(estado);
+-                
+-            } catch (error) {
+-                console.error("❌ Error durante el renderizado visual:", error);
++        } catch (error) {
++            console.error("❌ Error durante el renderizado visual:", error);
+         }
+     },
+ 
+-    dibujarJugadores: function(estado) {
++    dibujarJugadores: function (estado) {
+         const contenedorMesa = document.getElementById('mesa-verde');
+         document.querySelectorAll('.jugador-gafete').forEach(g => g.remove());
+ 
+         const mapaPosicionesRelativas = {
+-            1: { top: '50%', left: '15px', transform: 'translateY(-50%)' },     
+-            2: { top: '15px', left: '15px', transform: 'none' },  
+-            3: { top: '10px', left: '50%', transform: 'translateX(-50%)' },     
+-            4: { top: '15px', right: '15px', transform: 'none' },  
+-            5: { top: '50%', right: '15px', transform: 'translateY(-50%)' }     
++            1: { top: '50%', left: '15px', transform: 'translateY(-50%)' },
++            2: { top: '15px', left: '15px', transform: 'none' },
++            3: { top: '10px', left: '50%', transform: 'translateX(-50%)' },
++            4: { top: '15px', right: '15px', transform: 'none' },
++            5: { top: '50%', right: '15px', transform: 'translateY(-50%)' }
+         };
+ 
+         const miSilla = parseInt(window.mi_asiento);
+@@ -286,14 +332,14 @@ const interfaz = {
+             if (sillaInvitado === miSilla) return;
+ 
+             const jugador = estado.jugadores[id];
+-            if (!jugador || !jugador.nombre) return; 
++            if (!jugador || !jugador.nombre) return;
+ 
+             let distancia = (sillaInvitado - miSilla + totalSillas) % totalSillas;
+             const div = document.createElement('div');
+             div.className = 'jugador-gafete';
+ 
+             div.id = `jugador-${id}`;
+-            
++
+             if (id === String(estado.turno_actual_asiento)) div.classList.add('turno-activo');
+ 
+             if (mapaPosicionesRelativas[distancia]) Object.assign(div.style, mapaPosicionesRelativas[distancia]);
+@@ -308,8 +354,8 @@ const interfaz = {
+             contenedorMesa.appendChild(div);
+         });
+     },
+-    
+-    dibujarFicha: function(contenedor_id, ficha_data, estado_visual = "normal") {
++
++    dibujarFicha: function (contenedor_id, ficha_data, estado_visual = "normal") {
+         const contenedor = document.getElementById(contenedor_id);
+         if (!contenedor) return;
+ 
+@@ -317,7 +363,7 @@ const interfaz = {
+         const v2 = ficha_data.v2 !== undefined ? ficha_data.v2 : ficha_data.l2;
+ 
+         const div = document.createElement('div');
+-        div.className = `ficha ${estado_visual}`; 
++        div.className = `ficha ${estado_visual}`;
+         div.id = ficha_data.id;
+ 
+         // 🚩 Lógica de Mula: Si es mesa y los valores son iguales
+@@ -340,7 +386,7 @@ const interfaz = {
+ 
+                     window.fichaSeleccionadaParaTirar = {
+                         ...ficha_data,
+-                        v1: v1, 
++                        v1: v1,
+                         v2: v2
+                     };
+                     console.log(`🎴 SELECCIÓN FIRME: [${v1}|${v2}]`);
+@@ -353,12 +399,12 @@ const interfaz = {
+                 }
+             };
+         }
+-        
++
+         contenedor.appendChild(div);
+ 
+     },
+ 
+-    anunciarMulaMayor: function(nombreJugador, fichaMula, siguienteTurnoNombre) {
++    anunciarMulaMayor: function (nombreJugador, fichaMula, siguienteTurnoNombre) {
+         const overlay = document.getElementById('anuncio-mula');
+         const texto = document.getElementById('texto-mula-jugador');
+         const contenedorFicha = document.getElementById('ficha-mula-visual');
+@@ -371,7 +417,7 @@ const interfaz = {
+         contenedorFicha.innerHTML = '';
+         this.dibujarFicha('ficha-mula-visual', fichaMula, "mesa");
+         texto.innerHTML = `<strong>${nombreJugador}</strong> inició con la mula.`;
+-        
++
+         // 2. MOSTRAR: Quitamos oculto y añadimos visible
+         overlay.classList.remove('oculto');
+         setTimeout(() => {
+@@ -388,7 +434,7 @@ const interfaz = {
+         }, 5000);
+     },
+ 
+-    actualizarTurnoVisual: function(asientoActivo) {
++    actualizarTurnoVisual: function (asientoActivo) {
+         if (!asientoActivo) return;
+ 
+         const seatStr = String(asientoActivo); // Normalización total
+@@ -417,7 +463,7 @@ const interfaz = {
+         }
+     },
+ 
+-    actualizarControlesRobarPasar: function(estado) {
++    actualizarControlesRobarPasar: function (estado) {
+         const esMiTurno = String(estado.turno_actual_asiento) === String(window.mi_asiento);
+         const yaRobo = estado.ya_robo_en_turno || false;
+         const contenedor = document.getElementById('botones-robar-pasar');
+@@ -427,7 +473,7 @@ const interfaz = {
+         if (!contenedor) return;
+ 
+         if (esMiTurno) {
+-            contenedor.style.display = 'flex'; 
++            contenedor.style.display = 'flex';
+             if (!yaRobo) {
+                 btnRobar.style.display = 'block';
+                 btnPasar.style.display = 'none'; // El pasar ahora es automático
+@@ -440,10 +486,10 @@ const interfaz = {
+         }
+     },
+ 
+-    agregarMensajeChat: function(nombre, mensaje, esPropio) {
++    agregarMensajeChat: function (nombre, mensaje, esPropio) {
+         const contenedor = document.getElementById('mensajes-chat');
+         const div = document.createElement('div');
+-        
++
+         // Le ponemos una clase distinta si es nuestro o de alguien más
+         div.className = esPropio ? 'msg-mio' : 'msg-otro';
+         div.innerHTML = `<strong>${nombre}:</strong> <span>${mensaje}</span>`;
+@@ -453,9 +499,9 @@ const interfaz = {
+         contenedor.scrollTop = contenedor.scrollHeight;
+     },
+ 
+-    dibujarContenidoNativo: function(el, datos) {
++    dibujarContenidoNativo: function (el, datos) {
+         if (datos.tipo === 'estacion') {
+-            const v1 = datos.ficha ? datos.ficha.l1 : '?'; 
++            const v1 = datos.ficha ? datos.ficha.l1 : '?';
+             const v2 = datos.ficha ? datos.ficha.l2 : '?';
+             el.innerHTML = `
+                 <div class="estacion-base">
+@@ -473,7 +519,7 @@ const interfaz = {
+         if (datos.tipo === 'ficha') {
+             const c1 = (Number(datos.ficha.v1) === 6 || Number(datos.ficha.v1) === 9) ? 'numero-subrayado' : '';
+             const c2 = (Number(datos.ficha.v2) === 6 || Number(datos.ficha.v2) === 9) ? 'numero-subrayado' : '';
+-            
++
+             el.innerHTML = `
+                 <div class="cara-ficha cara-conexion ${c1}">${datos.ficha.v1}</div>
+                 <div class="cara-ficha cara-punta ${c2}">${datos.ficha.v2}</div>
+@@ -488,13 +534,13 @@ const interfaz = {
+             el.onclick = (event) => {
+                 event.stopPropagation();
+                 if (el.dataset.iluminada === 'true') {
+-                    window.enviarJugadaAlServidor(datos.viaId, datos.padreId, datos.rama); 
++                    window.enviarJugadaAlServidor(datos.viaId, datos.padreId, datos.rama);
+                 }
+             };
+         }
+     },
+ 
+-    actualizarFantasmaNativo: function(el, datos) {
++    actualizarFantasmaNativo: function (el, datos) {
+         const forma = el.querySelector('.fantasma-forma');
+         if (!forma) return;
+         el.dataset.iluminada = datos.iluminada;
+@@ -512,7 +558,7 @@ const interfaz = {
+             el.classList.remove("iluminada");
+         }
+     },
+-    
++
+ };
+ 
+ 

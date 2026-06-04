@@ -456,6 +456,13 @@
     transform: rotate(0deg) !important;
 }
 
+.fantasma-geometrico.mula-radial,
+.fantasma-geometrico.mula-radial .fantasma-forma {
+    width: var(--ficha-ancho) !important;
+    height: var(--ficha-alto) !important;
+}
+
+
 
 
 @keyframes pulso-iluminacion {

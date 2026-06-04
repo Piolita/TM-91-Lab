@@ -149,7 +149,7 @@ const MotorGeometrico = {
             if (d.tipo === 'estacion') {
                 el.className = 'nodo-ficha estacion-central';
             }
-            if (d.tipo === 'ficha' && d.esMula) {
+            if ((d.tipo === 'ficha' || d.tipo === 'fantasma') && d.esMula) {
                 el.classList.add('mula-radial');
             }
             
