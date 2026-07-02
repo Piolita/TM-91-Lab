@@ -11,7 +11,6 @@ const MotorGeometrico = {
     panZoom: { x: 0, y: 0, scale: 1, isDragging: false, startX: 0, startY: 0 },
     iniciado: false,
 
-    // ... tu código anterior de config y panZoom ...
     iniciado: false,
 
     dibujarZonasGuia: function() {

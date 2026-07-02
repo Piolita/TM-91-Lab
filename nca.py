@@ -219,19 +219,41 @@ class Arbitro:
             # Si el asiento actual no está (error raro), devolvemos el primero que haya
             return str(asientos_ocupados[0]) if asientos_ocupados else "1"
         
-    def autorizar_y_preparar_ficha(self, ficha, extremos):
-        valor_conexion = None
-        nuevo_extremo = None
-        for e in extremos:
-            if ficha["l1"] == e:
-                valor_conexion = e
-                nuevo_extremo = ficha["l2"]
+    def autorizar_y_preparar_ficha_exacta(self, ficha, puntas_disponibles, padre_destino, rama_destino):
+        """
+        Valida y prepara la ficha basándose rigurosamente en la punta 
+        específica (padre y rama) que el usuario seleccionó en la pantalla.
+        """
+        # 1. Convertimos los datos que vienen del frontend a texto limpio
+        id_buscado = str(padre_destino).replace("mesa-ficha-", "")
+        rama_buscada = str(rama_destino)
+
+        valor_extremo_tablero = None
+
+        # 2. Buscamos de forma segura barriendo las llaves del diccionario
+        for (p_id, rama), valor in puntas_disponibles.items():
+            if str(p_id) == id_buscado and str(rama) == rama_buscada:
+                valor_extremo_tablero = valor
                 break
-            elif ficha["l2"] == e:
-                valor_conexion = e
-                nuevo_extremo = ficha["l1"]
-                break
-        return valor_conexion, nuevo_extremo
+        
+        # 3. Si después de buscar no encontramos coincidencia:
+        if valor_extremo_tablero is None:
+            return None, None, "La rama seleccionada ya no está disponible."
+            
+        f_l1 = int(ficha["l1"])
+        f_l2 = int(ficha["l2"])
+        
+        # Validamos cuál lado de nuestra ficha conecta con el valor exacto de esa punta
+        if f_l1 == valor_extremo_tablero:
+            valor_conexion = f_l1
+            nuevo_extremo = f_l2
+        elif f_l2 == valor_extremo_tablero:
+            valor_conexion = f_l2
+            nuevo_extremo = f_l1
+        else:
+            return None, None, "La ficha no conecta numéricamente con la punta elegida."
+            
+        return valor_conexion, nuevo_extremo, "OK"
     
     def obtener_puntas_de_via(self, via_id, estado):
         """
@@ -441,17 +463,37 @@ class Arbitro:
         
         # Si el jugador especificó un destino exacto, verificamos que sea válido
         if padre_destino and rama_destino:
-            clave = (padre_destino, rama_destino)
-            if clave in puntas_legales:
-                v_ext = puntas_legales[clave]
+
+            # 🔎 TESTIGOS DE DEPURACIÓN (MIRA TU TERMINAL AQUÍ)
+            print("\n=== 🕵️‍♂️ AUDITORÍA DEL ÁRBITRO ===")
+            print(f"Frontend mandó padre_destino: '{padre_destino}' (tipo: {type(padre_destino)})")
+            print(f"Frontend mandó rama_destino: '{rama_destino}' (tipo: {type(rama_destino)})")
+            print(f"Puntas legales en Python: {list(puntas_legales.keys())}")
+            print("=================================\n")
+            
+            id_buscado = str(padre_destino).replace("mesa-ficha-", "")
+            rama_buscada = str(rama_destino)
+            
+            punta_elegida = None
+            v_ext = None
+            
+            # Buscamos barriendo el diccionario convirtiendo a texto
+            for (p_id, rama), valor in puntas_legales.items():
+                if str(p_id) == id_buscado and str(rama) == rama_buscada:
+                    punta_elegida = (p_id, rama)
+                    v_ext = valor
+                    break
+            
+            if punta_elegida is not None:
                 if f_l1 == v_ext or f_l2 == v_ext:
-                    punta_elegida = clave
+                    # Encontrado y conecta numéricamente
+                    pass 
                 else:
                     return False, "La ficha no encaja en la rama seleccionada.", None
             else:
                 return False, "La rama seleccionada ya no está disponible.", None
         else:
-            # Buscamos si alguno de los lados de la ficha conecta con alguna punta
+            # Buscamos si alguno de los lados de la ficha conecta con alguna punta (Plan de contingencia)
             opciones_validas = []
             for clave, valor in puntas_legales.items():
                 if f_l1 == valor or f_l2 == valor:

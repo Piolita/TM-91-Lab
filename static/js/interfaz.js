@@ -41,8 +41,7 @@ const interfaz = {
                 puntas.set(`${f.id}|izq`, { padreId: f.id, rama: "izq", valor: v2 });
                 puntas.set(`${f.id}|der`, { padreId: f.id, rama: "der", valor: v2 });
             } else {
-                const ramaDestino = (f.rama === 'izq' || f.rama === 'der') ? f.rama : "unica";
-                puntas.set(`${f.id}|${ramaDestino}`, { padreId: f.id, rama: ramaDestino, valor: v2 });
+                puntas.set(`${f.id}|unica`, { padreId: f.id, rama: "unica", valor: v2 });
             }
         });
 
@@ -50,7 +49,9 @@ const interfaz = {
     },
 
     renderizarVias: function (estado) {
-        // Permisos - puedes jugar?
+        // =========================================================================
+        // 1. CONTROL DE VALIDACIÓN Y CONFIGURACIÓN INICIAL
+        // =========================================================================
         const permisos = estado.permisos_vias_tren;
         if (!permisos) return;
         const miID = String(window.mi_asiento);
@@ -58,12 +59,18 @@ const interfaz = {
         const coloresVias = { 1: '#e17055', 2: '#0984e3', 3: '#00b894', 4: '#f1c40f', 5: '#6c5ce7', 6: '#d63031' };
         const layout = [];
 
-        // Coloca la Estación
+        // =========================================================================
+        // 2. REGISTRO DE LA ESTACIÓN CENTRAL (PUNTO DE ORIGEN)
+        // =========================================================================
         layout.push({
             id: 'estacion', tipo: 'estacion',
             x: 0, y: 0, rotacion: 0,
             ficha: estado.estacion_central
         });
+
+        // =========================================================================
+        // 3. BUCLE PRINCIPAL: PROCESAR CADA UNA DE LAS VÍAS DE LA MESA
+        // =========================================================================
 
         Object.keys(estado.vias).forEach(idAsiento => {
             const fichas = estado.vias[idAsiento] || [];
@@ -79,7 +86,9 @@ const interfaz = {
 
             let contadorFichasEnVia = 0; 
 
-            // Fichas
+            // ---------------------------------------------------------------------
+            // 3.A. SUB-BUCLE: CALCULAR POSICIÓN DE LAS FICHAS YA JUGADAS
+            // ---------------------------------------------------------------------
             fichas.forEach((f, indice) => {
                 const padreId = f.padre_id || "estacion";
                 const padre = nodosCoords[padreId] || nodosCoords["estacion"];
@@ -87,18 +96,20 @@ const interfaz = {
                 let angulo = padre.anguloBase;
                 const esMula = Number(f.v1) === Number(f.v2);
 
-                // Calcular step index de la vía principal
+                // Calcular step index reiniciando el contador si nace una bifurcación
                 let mainStepIndex;
-                if (f.rama !== 'izq' && f.rama !== 'der') {
-                    mainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
+                if (f.rama === 'izq' || f.rama === 'der') {
+                    // Si la ficha se conecta a un lado de la mula, inicia un nuevo camino recto (paso 0)
+                    mainStepIndex = 0;
                 } else {
-                    mainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1);
+                    // Si sigue en línea recta (ya sea en la principal o dentro de la bifurcación)
+                    mainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
                 }
 
                 // 🐍 LÓGICA DE LA SERPIENTE INTELIGENTE 🐍
                 if (f.rama !== 'izq' && f.rama !== 'der') {
                     let offset = 0;
-                    if (mainStepIndex >= 4) {
+                    if (mainStepIndex >= 4 && !esMula) {
                         const bloque = Math.floor(mainStepIndex / 4);
                         if (bloque % 2 === 1) {
                             offset = -90; // Curva a la izquierda
@@ -109,15 +120,18 @@ const interfaz = {
                 
                 const rad = (angulo * Math.PI) / 180;
                 const padreEsMula = padre.esMula;
-                
+
+                // Determinar el tamaño físico de la ficha (las mulas ocupan su ancho, no su largo)
                 const largoPadre = padreEsMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
                 const largoActual = esMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
                 
+                // Calcular distancia de separación entre centros de fichas
                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
                 if (padreId === "estacion") {
                      distPaso = MotorGeometrico.config.radioEstacion; 
                 }
 
+                // Desfase perpendicular: Si se juega por los lados de una Mula (Ramas Izq/Der)
                 let perpX = 0, perpY = 0;
                 if (f.rama === 'izq' || f.rama === 'der') {
                     if (padreEsMula) {
@@ -136,41 +150,47 @@ const interfaz = {
                     }
                 }
 
+                // Obtener coordenadas finales de la ficha actual en el plano cartesiano
                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
                 const py = padre.y + perpY + Math.sin(rad) * distPaso;
                 
+                // Guardar en el mapa para que la siguiente ficha sepa dónde agarrarse
                 nodosCoords[f.id] = { x: px, y: py, anguloBase: angulo, esMula: esMula, mainStepIndex: mainStepIndex };
                 
+                // Empujar la ficha real al listado del layout
                 layout.push({
                     id: `mesa-ficha-${f.id}`, tipo: 'ficha', esMula: esMula, ficha: f,
                     x: px, y: py, rotacion: angulo
                 });
             });
 
-            // Fantasma
+            // ---------------------------------------------------------------------
+            // 3.B. SUB-BUCLE: CALCULAR POSICIÓN DE LOS FANTASMAS (PUNTAS DISPONIBLES)
+            // ---------------------------------------------------------------------
             this.obtenerPuntas(fichas, estado).forEach(punta => {
                 const fantasmaId = `fantasma-${idAsiento}-${punta.padreId}-${punta.rama}`;
                 const fichaSel = window.fichaSeleccionadaParaTirar;
+
+                // Determinar si el fantasma debe brillar: requiere permiso y que la ficha seleccionada combine con el número
                 let iluminada = (puedoTirarAqui && fichaSel && (Number(fichaSel.l1) === Number(punta.valor) || Number(fichaSel.l2) === Number(punta.valor)));
                 
-                // Fantasma — también con ramas paralelas
                 const padreId = punta.padreId || "estacion";
                 const padre = nodosCoords[padreId] || nodosCoords["estacion"];
 
-                // 1. DETERMINAR EL ÁNGULO CORRECTO DEL FANTASMA
+                // --- 1. Determinar el ángulo correcto del fantasma ---
                 let angulo = padre.anguloBase;
+                const enRamaLateral = (punta.rama === 'izq' || punta.rama === 'der' || padre.mainStepIndex === 0);
 
                 let ghostMainStepIndex;
-                if (punta.rama !== 'izq' && punta.rama !== 'der') {
-                    ghostMainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
+                if (punta.rama === 'izq' || punta.rama === 'der') {
+                    ghostMainStepIndex = 0;
                 } else {
-                    ghostMainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1);
+                    ghostMainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
                 }
-
-                if (punta.rama !== 'izq' && punta.rama !== 'der') {
-                    // Lógica de la serpiente para fichas normales en la vía principal
+                // Aplicar la misma lógica de serpiente al fantasma para que fluyera con el camino
+                if (!enRamaLateral) {
                     let offset = 0;
-                    if (ghostMainStepIndex >= 4) {
+                    if (ghostMainStepIndex >= 4 && !padre.esMula) {
                         const bloque = Math.floor(ghostMainStepIndex / 4);
                         if (bloque % 2 === 1) {
                             offset = -90; // Curva a la izquierda
@@ -190,11 +210,10 @@ const interfaz = {
                     distPaso = MotorGeometrico.config.radioEstacion;
                 }
 
-                // 2. CÁLCULO DE COORDENADAS (PERPENDICULARES SOLO SI EL PADRE ES MULA)
+                // --- 2. Cálculo de coordenadas cartesianas (perpendiculares si el padre es mula) ---
                 let perpX = 0, perpY = 0;
                 if (punta.rama === 'izq' || punta.rama === 'der') {
                     if (padreEsMula) {
-                        // El ángulo de la vía se usa para el desplazamiento lateral
                         const viaRad = (padre.anguloBase * Math.PI) / 180;
                         const perpRad = viaRad + Math.PI / 2;
                         
@@ -205,20 +224,19 @@ const interfaz = {
                         perpY = signPerp * Math.sin(perpRad) * perpOffset;
                         
                         distPaso = MotorGeometrico.config.anchoFicha / 2;
-                    } else {
-                        // Si el padre ya es la ficha de la rama (ej. 2/6), no hay desfase perpendicular.
-                        // Se desplaza puramente hacia adelante usando el nuevo ángulo corregido.
-                        perpX = 0;
-                        perpY = 0;
-                        distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
-                    }
+                    } 
                 }
 
                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
                 const py = padre.y + perpY + Math.sin(rad) * distPaso;
 
+                // Empujar el fantasma al listado del layout
                 layout.push({
-                    id: fantasmaId, tipo: 'fantasma', viaId: idAsiento, padreId: punta.padreId, rama: punta.rama,
+                    id: fantasmaId, 
+                    tipo: 'fantasma', 
+                    viaId: idAsiento, 
+                    padreId: punta.padreId, 
+                    rama: punta.rama,
                     x: px, y: py, rotacion: angulo, iluminada: iluminada, color: colorVia,
                     textoEtiqueta: `Vía ${idAsiento}`,
                     trenPublico: estado.marcadores[idAsiento]
@@ -226,6 +244,9 @@ const interfaz = {
             });
         });
 
+        // =========================================================================
+        // 4. ORDEN DE DIBUJO FINAL
+        // =========================================================================
         if (typeof MotorGeometrico !== 'undefined') {
             MotorGeometrico.dibujar(layout);
         }
@@ -576,7 +597,6 @@ function actualizarNoticia(mensaje) {
     const etiquetaTexto = document.getElementById('texto-noticia');
     if (etiquetaTexto) etiquetaTexto.innerText = mensaje;
 }
-
 
 document.getElementById('burbuja-comms').onclick = () => {
     document.getElementById('panel-comunicaciones').classList.remove('panel-oculto');

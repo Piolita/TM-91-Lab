@@ -1,7 +1,7 @@
 # telefonista.py
 
 from flask import request
-from flask_socketio import emit  # type: ignore[import-untyped]
+from flask_socketio import emit 
 from nca import Notario, Crupier, Arbitro
 from contador import Contador
 from taquilla import Taquillero  
@@ -20,19 +20,12 @@ def emitir_permisos_vias(estado):
     """
     for asiento_id, datos_jugador in estado['jugadores'].items():
         if datos_jugador and "sid" in datos_jugador:
-            
-            # 1. El Árbitro genera el paquete completo (vias + extremos_legales)
 
             info_personalizada = arbitro.generar_permisos_via(estado, asiento_id)
-            
-            # 2. Creamos el paquete que viajará por el cable
             paquete_para_el_radio = estado.copy()
-            
-            # Inyectamos lo que el Árbitro decidió para ESTE jugador
             paquete_para_el_radio['permisos_vias_tren'] = info_personalizada['vias']
             paquete_para_el_radio['extremos_legales'] = info_personalizada['extremos_legales']
             
-            # 3. Emitimos al SID privado
             emit('actualizar_mesa', paquete_para_el_radio, to=datos_jugador["sid"])
 
             
@@ -171,7 +164,9 @@ def iniciar_eventos_socket(socketio):
             return
 
         # 2. ¡ÁRBITRO, DAME EL VISTO BUENO!
-        exito, mensaje, ficha_lista = arbitro.procesar_jugada_completa(asiento_id, ficha_jugada, via_destino, estado, padre_destino, rama_destino)
+        exito, mensaje, ficha_lista = arbitro.procesar_jugada_completa(
+            asiento_id, ficha_jugada, via_destino, estado, padre_destino, rama_destino
+            )
 
         if not exito:
             print(f"❌ ÁRBITRO RECHAZA [{asiento_id}]: {mensaje}")

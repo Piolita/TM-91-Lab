@@ -201,8 +201,8 @@ const radio = {
             asiento: miAsiento,
             via_destino: String(viaDestino),
             ficha: fichaObjeto,
-            padre_id: padreDestino, // Alineado con lo que espera el servidor
-            rama: ramaDestino         // Alineado con lo que espera el servidor
+            padre_destino: padreDestino, 
+            rama_destino: ramaDestino
         };
 
         console.log(`%c 📤 JUGADA: Ficha [${fichaObjeto.v1}|${fichaObjeto.v2}] ⮕ Vía: ${viaDestino}`, "color: #2ecc71; font-weight: bold;");
@@ -287,6 +287,7 @@ socket.on('recibir_chat', (data) => {
     // Le pedimos al pintor que lo dibuje
     interfaz.agregarMensajeChat(data.nombre, data.mensaje, data.es_propio);
 });
+
 
 // Al final de radio.js para que interfaz.js te encuentre
 window.enviarJugadaAlServidor = function(viaId, padreId, rama) {
