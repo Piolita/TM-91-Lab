@@ -96,20 +96,24 @@ const interfaz = {
                 let angulo = padre.anguloBase;
                 const esMula = Number(f.v1) === Number(f.v2);
 
-                // Calcular step index reiniciando el contador si nace una bifurcación
+                // Calcular step index reiniciacion el contador si nace una bifurcación
                 let mainStepIndex;
                 if (f.rama === 'izq' || f.rama === 'der') {
-                    // Si la ficha se conecta a un lado de la mula, inicia un nuevo camino recto (paso 0)
                     mainStepIndex = 0;
                 } else {
-                    // Si sigue en línea recta (ya sea en la principal o dentro de la bifurcación)
                     mainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
                 }
 
                 // 🐍 LÓGICA DE LA SERPIENTE INTELIGENTE 🐍
+                let esGiroDeBloque = false;
                 if (f.rama !== 'izq' && f.rama !== 'der') {
+                    // CONDICIÓN MATEMÁTICA: Si el índice es mayor a 0 y es divisible exactamente entre 4 (4, 8, 12...)
+                    if (mainStepIndex > 0 && mainStepIndex % 4 === 0) {
+                        esGiroDeBloque = true;
+                    }
+
                     let offset = 0;
-                    if (mainStepIndex >= 4 && !esMula) {
+                    if (mainStepIndex >= 4) {
                         const bloque = Math.floor(mainStepIndex / 4);
                         if (bloque % 2 === 1) {
                             offset = -90; // Curva a la izquierda
@@ -118,15 +122,22 @@ const interfaz = {
                     angulo = grados + offset;
                 }
                 
-                const rad = (angulo * Math.PI) / 180;
+                // Usamos el ángulo del padre para la proyección de avance en la mesa
+                const rad = (padre.anguloBase * Math.PI) / 180;
                 const padreEsMula = padre.esMula;
 
-                // Determinar el tamaño físico de la ficha (las mulas ocupan su ancho, no su largo)
+                // Determinar el tamaño físico de la ficha
                 const largoPadre = padreEsMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
                 const largoActual = esMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
                 
-                // Calcular distancia de separación entre centros de fichas
+                // Calcular distancia de separación estándar entre centros
                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+                
+                // CONDICIONAL: Si es la quinta ficha (giro) y es una ficha NORMAL, ajustamos distPaso
+                if (esGiroDeBloque && !esMula) {
+                    distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+                }
+
                 if (padreId === "estacion") {
                      distPaso = MotorGeometrico.config.radioEstacion; 
                 }
@@ -150,14 +161,14 @@ const interfaz = {
                     }
                 }
 
-                // Obtener coordenadas finales de la ficha actual en el plano cartesiano
+                // Obtener coordenadas finales utilizando el rad basado en el padre
                 const px = padre.x + perpX + Math.cos(rad) * distPaso;
                 const py = padre.y + perpY + Math.sin(rad) * distPaso;
                 
-                // Guardar en el mapa para que la siguiente ficha sepa dónde agarrarse
+                // Guardar en el mapa para la siguiente ficha
                 nodosCoords[f.id] = { x: px, y: py, anguloBase: angulo, esMula: esMula, mainStepIndex: mainStepIndex };
                 
-                // Empujar la ficha real al listado del layout
+                // Empujar la ficha real al layout
                 layout.push({
                     id: `mesa-ficha-${f.id}`, tipo: 'ficha', esMula: esMula, ficha: f,
                     x: px, y: py, rotacion: angulo
@@ -171,7 +182,7 @@ const interfaz = {
                 const fantasmaId = `fantasma-${idAsiento}-${punta.padreId}-${punta.rama}`;
                 const fichaSel = window.fichaSeleccionadaParaTirar;
 
-                // Determinar si el fantasma debe brillar: requiere permiso y que la ficha seleccionada combine con el número
+                // Determinar si el fantasma debe brillar
                 let iluminada = (puedoTirarAqui && fichaSel && (Number(fichaSel.l1) === Number(punta.valor) || Number(fichaSel.l2) === Number(punta.valor)));
                 
                 const padreId = punta.padreId || "estacion";
@@ -187,10 +198,17 @@ const interfaz = {
                 } else {
                     ghostMainStepIndex = (padre.mainStepIndex !== undefined ? padre.mainStepIndex : -1) + 1;
                 }
-                // Aplicar la misma lógica de serpiente al fantasma para que fluyera con el camino
+                
+                // Aplicar la misma lógica de serpiente al fantasma
+                let esGiroDeBloqueGhost = false;
                 if (!enRamaLateral) {
+                    // CONDICIÓN MATEMÁTICA: Si el índice del fantasma es múltiplo de 4
+                    if (ghostMainStepIndex > 0 && ghostMainStepIndex % 4 === 0) {
+                        esGiroDeBloqueGhost = true;
+                    }
+
                     let offset = 0;
-                    if (ghostMainStepIndex >= 4 && !padre.esMula) {
+                    if (ghostMainStepIndex >= 4) {
                         const bloque = Math.floor(ghostMainStepIndex / 4);
                         if (bloque % 2 === 1) {
                             offset = -90; // Curva a la izquierda
@@ -199,23 +217,29 @@ const interfaz = {
                     angulo = grados + offset;
                 }
 
-                const rad = (angulo * Math.PI) / 180;
+                // Usamos el ángulo del padre para la proyección de avance en la mesa
+                const rad = (padre.anguloBase * Math.PI) / 180;
                 const padreEsMula = padre.esMula;
 
                 const largoPadre = padreEsMula ? MotorGeometrico.config.anchoFicha : MotorGeometrico.config.largoFicha;
                 const largoActual = MotorGeometrico.config.largoFicha; 
 
+                // Calcular distancia de separación estándar entre centros
                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
+                
+                // CONDICIONAL FANTASMA GENERAL: Si el fantasma está en una posición de giro y el padre no es mula
+                if (esGiroDeBloqueGhost && !padreEsMula) {
+                    distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+                }
                 if (padreId === "estacion") {
                     distPaso = MotorGeometrico.config.radioEstacion;
                 }
 
-                // --- 2. Cálculo de coordenadas cartesianas (perpendiculares si el padre es mula) ---
+                // --- 2. Cálculo de coordenadas cartesianas ---
                 let perpX = 0, perpY = 0;
                 if (punta.rama === 'izq' || punta.rama === 'der') {
                     if (padreEsMula) {
-                        const viaRad = (padre.anguloBase * Math.PI) / 180;
-                        const perpRad = viaRad + Math.PI / 2;
+                        const perpRad = rad + Math.PI / 2;
                         
                         const perpOffset = (MotorGeometrico.config.anchoFicha / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
                         const signPerp = (punta.rama === 'izq') ? -1 : 1;
