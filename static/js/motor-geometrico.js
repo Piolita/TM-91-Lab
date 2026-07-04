@@ -54,7 +54,6 @@ const MotorGeometrico = {
         `;
     },
 
-
     inicializar: function() {
         if (this.iniciado) return;
         const mesa = document.getElementById('mesa-verde');
@@ -103,6 +102,52 @@ const MotorGeometrico = {
 
         // Ejecutar nuestra prueba visual de fondo
         this.dibujarZonasGuia();
+
+        // INYECCIÓN DE BOTONES DE ZOOM FIJOS (Para Trackpad de Mac)
+        if (!document.getElementById('controles-zoom-fijos')) {
+            const contenedorBotones = document.createElement('div');
+            contenedorBotones.id = 'controles-zoom-fijos';
+            
+            // Estilos CSS directos para dejarlos flotando elegantemente abajo a la derecha
+            contenedorBotones.style.position = 'fixed';
+            contenedorBotones.style.bottom = '120px';
+            contenedorBotones.style.right = '20px';
+            contenedorBotones.style.display = 'flex';
+            contenedorBotones.style.flexDirection = 'column';
+            contenedorBotones.style.gap = '10px';
+            contenedorBotones.style.zIndex = '1000'; // Asegura que queden arriba de las fichas
+
+            contenedorBotones.innerHTML = `
+                <button id='btn-zoom-in' style='width: 45px; height: 45px; font-size: 24px; font-weight: bold; background: #222; color: #fff; border: 2px solid #555; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'>+</button>
+                <button id='btn-zoom-out' style='width: 45px; height: 45px; font-size: 24px; font-weight: bold; background: #222; color: #fff; border: 2px solid #555; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'>-</button>
+            `;
+
+            mesa.appendChild(contenedorBotones);
+
+            // Escuchadores de clics conectados a nuestras funciones suaves
+            document.getElementById('btn-zoom-in').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.zoomInManual();
+            });
+
+            document.getElementById('btn-zoom-out').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.zoomOutManual();
+            });
+        }
+    },
+
+    // FUNCIONES DE ZOOM SUAVE PARA BOTONES (Ideales para Trackpad en Mac)
+    zoomInManual: function() {
+        // Incremento sutil de 0.08 por cada clic
+        this.panZoom.scale = Math.min(this.panZoom.scale + 0.08, 2.5);
+        this.aplicarTransform();
+    },
+
+    zoomOutManual: function() {
+        // Decremento sutil de 0.08 por cada clic
+        this.panZoom.scale = Math.max(this.panZoom.scale - 0.08, 0.3);
+        this.aplicarTransform();
     },
 
     aplicarTransform: function() {

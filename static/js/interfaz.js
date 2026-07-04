@@ -121,7 +121,7 @@ const interfaz = {
                     }
                     angulo = grados + offset;
                 }
-                
+                                
                 // Usamos el ángulo del padre para la proyección de avance en la mesa
                 const rad = (padre.anguloBase * Math.PI) / 180;
                 const padreEsMula = padre.esMula;
@@ -132,10 +132,16 @@ const interfaz = {
                 
                 // Calcular distancia de separación estándar entre centros
                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
-                
-                // CONDICIONAL: Si es la quinta ficha (giro) y es una ficha NORMAL, ajustamos distPaso
-                if (esGiroDeBloque && !esMula) {
-                    distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+
+                // CONDICIONAL GENERAL CORREGIDO: Ajuste de distancia en giro de bloque (Ficha normal o Mula)
+                if (esGiroDeBloque) {
+                    if (!esMula) {
+                        // Si es ficha normal que gira
+                        distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+                    } else {
+                        // Si es una MULA que gira: Forzamos el largo completo más una separación extra para sacarla de la ficha 4
+                        distPaso = (largoPadre / 2) + MotorGeometrico.config.largoFicha + (MotorGeometrico.config.separacion * 2);
+                    }
                 }
 
                 if (padreId === "estacion") {
@@ -227,10 +233,19 @@ const interfaz = {
                 // Calcular distancia de separación estándar entre centros
                 let distPaso = (largoPadre / 2) + (largoActual / 2) + MotorGeometrico.config.separacion;
                 
-                // CONDICIONAL FANTASMA GENERAL: Si el fantasma está en una posición de giro y el padre no es mula
-                if (esGiroDeBloqueGhost && !padreEsMula) {
-                    distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+                // CONDICIONAL FANTASMA GENERAL CORREGIDO: Ajuste de distancia en giro de bloque
+                if (esGiroDeBloqueGhost) {
+                    const esMulaSeleccionada = fichaSel ? (Number(fichaSel.l1) === Number(fichaSel.l2)) : false;
+                    
+                    if (!esMulaSeleccionada) {
+                        // Si lo que se va a tirar es una ficha normal
+                        distPaso = (largoPadre / 2) + (MotorGeometrico.config.anchoFicha / 2) + MotorGeometrico.config.separacion;
+                    } else {
+                        // Si lo que se va a tirar es una MULA: Forzamos la distancia larga para empujar el fantasma fuera de la ficha 4
+                        distPaso = (largoPadre / 2) + MotorGeometrico.config.largoFicha + (MotorGeometrico.config.separacion * 2);
+                    }
                 }
+
                 if (padreId === "estacion") {
                     distPaso = MotorGeometrico.config.radioEstacion;
                 }
