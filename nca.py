@@ -1,16 +1,15 @@
 # nca.py
-
-
+import sqlite3
 import json
 import os
 import random
 
 # =================================================================
-# 1. EL NOTARIO (La Memoria y Persistencia)
+# 1. EL NOTARIO (La Memoria y Persistencia mediante SQLite) - CORREGIDO
 # =================================================================
 class Notario:
     def __init__(self):
-        self.archivo = "partida_save.json"
+        self.db_name = "partida_dominio.db"
         self.estado_inicial = {
             "anfitrion_sid": None,
             "jugadores": {}, 
@@ -22,103 +21,119 @@ class Notario:
             "turno_actual_asiento": None,
             "mula_apertura": 12 
         }
-        self._estado_en_memoria = None
+        # Eliminamos el flag de memoria estática para obligar a consultar la DB real
+        self._inicializar_base_datos()
+
+    def _inicializar_base_datos(self):
+        """Crea la tabla de persistencia si es la primera vez que arranca."""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS estado_juego (
+                id INTEGER PRIMARY KEY,
+                datos_json TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
 
     def cargar_estado(self):
-        if self._estado_en_memoria is not None:
-            return self._estado_en_memoria
-            
-        if not os.path.exists(self.archivo):
-            self._estado_en_memoria = json.loads(json.dumps(self.estado_inicial))
-            self.guardar_estado_en_disco(self._estado_en_memoria)
-            return self._estado_en_memoria
-            
-        with open(self.archivo, 'r') as f:
-            self._estado_en_memoria = json.load(f)
-            return self._estado_en_memoria
+        """Lee el estado directamente desde la tabla SQLite de forma estricta."""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute("SELECT datos_json FROM estado_juego WHERE id = 1")
+        fila = cursor.fetchone()
+        conn.close()
+
+        if fila is None:
+            # Si la base de datos está vacía, insertamos el molde limpio
+            estado_limpio = json.loads(json.dumps(self.estado_inicial))
+            self.guardar_estado(estado_limpio)
+            return estado_limpio
+        else:
+            # Reconstruimos el diccionario de Python desde el texto de la DB
+            return json.loads(fila[0])
 
     def guardar_estado(self, datos):
-        self._estado_en_memoria = datos
-        self.guardar_estado_en_disco(datos)
-
-    def guardar_estado_en_disco(self, datos):
-        with open(self.archivo, 'w') as f:
-            json.dump(datos, f, indent=4)
+        """Guarda el diccionario del estado convirtiéndolo en texto JSON dentro de SQLite."""
+        texto_json = json.dumps(datos)
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO estado_juego (id, datos_json)
+            VALUES (1, ?)
+        ''', (texto_json,))
+        conn.commit()
+        conn.close()
 
     def transferir_ficha_a_mesa(self, asiento_id, ficha_lista, via_destino, estado):
         via_destino_str = str(via_destino) 
+        
+        # Blindaje contra diferencias de tipo (String vs Int) en las llaves de jugadores
         asiento_str = str(asiento_id)      
+        if asiento_str not in estado['jugadores'] and int(asiento_id) in estado['jugadores']:
+            asiento_str = int(asiento_id)
         
         # 1. LA QUITA de la mano
         mano = estado['jugadores'][asiento_str]['mano']
         estado['jugadores'][asiento_str]['mano'] = [f for f in mano if f['id'] != ficha_lista['id']]
         
         # 2. LA PONE en la vía
-        # Verificamos si es mula para activar la bifurcación visual
         if int(ficha_lista.get('v1', 0)) == int(ficha_lista.get('v2', 0)):
             ficha_lista['es_bifurcacion'] = True
         
+        if via_destino_str not in estado['vias']:
+            estado['vias'][via_destino_str] = []
         estado['vias'][via_destino_str].append(ficha_lista)
 
         # 3. LA LIBERA: Si puso en su vía, quita el tren
-        if via_destino_str == asiento_str:
-            estado['marcadores'][asiento_str] = False
+        if str(via_destino) == str(asiento_id):
+            if 'marcadores' in estado:
+                estado['marcadores'][str(asiento_id)] = False
             
+        # ✨ SOLUCIÓN CRÍTICA: Guardar los cambios inmediatamente en SQLite
+        self.guardar_estado(estado)
         return "Transferencia completada"
     
     def registrar_robo_pozo(self, asiento_id, estado, crupier):
         asiento_str = str(asiento_id)
-        
-        # 1. Le pedimos al crupier que nos dé la ficha física
+        if asiento_str not in estado['jugadores'] and int(asiento_id) in estado['jugadores']:
+            asiento_str = int(asiento_id)
+
         ficha = crupier.extraer_ficha_del_pozo(estado)
-        
         if ficha:
-            # 2. La anotamos en la mano del jugador
             estado['jugadores'][asiento_str]['mano'].append(ficha)
-            
-            # 3. Al robar, el marcador se pone en True (Tren abierto)
-            estado['marcadores'][asiento_str] = True
-            
-            # 4. Guardamos los cambios en el JSON
+            estado['marcadores'][str(asiento_id)] = True
+            # Guarda los cambios de forma segura en SQLite
             self.guardar_estado(estado)
-            return ficha # Devolvemos la ficha para avisar al jugador
-        
+            return ficha
         return None
 
     def avanzar_turno(self, estado, arbitro):
-        # 1. Antes de cambiar, reseteamos el estado de robo para el siguiente
         estado['ya_robo_en_turno'] = False 
-        
-        # 2. Calculamos el siguiente
         actual = estado['turno_actual_asiento']
         siguiente = arbitro.calcular_siguiente_turno(actual, estado['jugadores'])
         estado['turno_actual_asiento'] = siguiente
-        
         self.guardar_estado(estado)
         return siguiente
 
-       # En nca.py, dentro de la clase Notario
-
     def anotar_permisos_via(self, estado, arbitro):
-        # Para cada jugador, calculamos sus permisos y extremos legales personalizados
         for asiento_id in estado['jugadores'].keys():
-            # El Árbitro ahora devuelve un dict con "vias" y "extremos_legales"
             permisos_completos = arbitro.generar_permisos_via(estado, asiento_id)
-            
-            # Guardamos el paquete completo
             estado['jugadores'][asiento_id]['permisos_actuales'] = permisos_completos
-            
         self.guardar_estado(estado)
 
     def obtener_nombre_por_asiento(self, asiento_id, estado):
-        """El Notario busca en el estado actual quién está sentado ahí."""
         asiento_str = str(asiento_id)
         jugadores = estado.get('jugadores', {})
-        
         if asiento_str in jugadores:
             jugador = jugadores[asiento_str]
             if isinstance(jugador, dict):
                 return jugador.get('nombre', f"Jugador {asiento_str}")
+        elif int(asiento_id) in jugadores:
+            jugador = jugadores[int(asiento_id)]
+            if isinstance(jugador, dict):
+                return jugador.get('nombre', f"Jugador {asiento_id}")
         return f"Asiento {asiento_str}"
 
 # =================================================================

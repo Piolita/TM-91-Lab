@@ -65,15 +65,33 @@ def iniciar_eventos_socket(socketio):
         # 2. Si está libre, el Taquillero hace el registro en memoria
         taquillero.ocupar_asiento(asiento_id, nombre, sid)
         
-        # 3. Obtenemos el mapa actual para el ticket
-        mapa_lobby = taquillero.obtener_mapa_completo()
+        # ✨ 3. CAMBIO CRUCIAL: Traemos el estado real y oficial desde SQLite (Notario)
+        estado = notario.cargar_estado()
+        
+        # ✨ Registramos al jugador dentro de la estructura oficial de la partida
+        if 'jugadores' not in estado:
+            estado['jugadores'] = {}
+            
+        estado['jugadores'][asiento_id] = {
+            "nombre": nombre,
+            "sid": sid,
+            "mano": [],
+            "permisos_actuales": {}
+        }
+        
+        # Si es el primer jugador en registrarse, el Notario lo marca como anfitrión
+        if len(estado['jugadores']) == 1:
+            estado['anfitrion_sid'] = sid
+            
+        # ✨ Guardamos el registro inmediatamente en la Base de Datos
+        notario.guardar_estado(estado)
 
-        # 4. Enviamos el ticket (Éxito)
+        # 4. Enviamos el ticket (Éxito) usando el estado oficial del Notario
         emit('ticket_acceso', {
             'autorizado': True,
-                'asiento_id': asiento_id,
-                'es_anfitrion': (mapa_lobby["anfitrion_sid"] == sid),
-                'estado_completo': mapa_lobby # Enviamos lo que dice la Taquilla
+            'asiento_id': asiento_id,
+            'es_anfitrion': (estado["anfitrion_sid"] == sid),
+            'estado_completo': estado # ✨ Ahora sí enviamos la estructura completa que espera radio.js
         }, to=sid)
 
         # 5. Avisamos a los demás (¡Chisme completo!)
@@ -81,7 +99,7 @@ def iniciar_eventos_socket(socketio):
             'tipo': 'asiento_ocupado',
             'asiento_id': asiento_id,
             'nombre': nombre,
-            'es_anfitrion': (mapa_lobby["anfitrion_sid"] == sid) # <--- Agregamos este dato
+            'es_anfitrion': (estado["anfitrion_sid"] == sid) 
         }, broadcast=True)
 
     @socketio.on('orden_arrancar_juego')
@@ -275,9 +293,84 @@ def iniciar_eventos_socket(socketio):
         
         emitir_permisos_vias(estado)   
 
+    @socketio.on('reconectar_jugador')
+    def handle_reconectar(data):
+        asiento_id = str(data.get('asiento_id'))
+        nuevo_sid = request.sid
+        
+        # 1. Cargamos el estado oficial de la partida desde SQLite a través del Notario
+        estado = notario.cargar_estado()
+        
+        # 🚨 LA LLAVE DE SEGURIDAD: Si no hay juego activo en el servidor, prohibimos saltar el lobby
+        if not estado.get('partida_iniciada', False):
+            print(f"🛑 RECONEXIÓN RECHAZADA: No hay ninguna partida activa en el servidor. Enviando asiento {asiento_id} al Lobby.")
+            # Le avisamos al jugador que su juego viejo ya no existe
+            emit('ticket_acceso', {
+                'autorizado': False,
+                'mensaje': 'La partida anterior ya concluyó. Por favor, regístrate de nuevo.'
+            }, to=nuevo_sid)
+            return
+
+        print(f"🔄 Intentando reconexión médica para el asiento {asiento_id} (Nuevo sid: {nuevo_sid})")
+        
+        # 2. Verificar que el asiento exista en el juego en curso
+        if asiento_id in estado.get('jugadores', {}):
+            jugador_estado = estado['jugadores'][asiento_id]
+            
+            if jugador_estado:
+                # 3. ACTUALIZACIÓN EN TAQUILLA (Usando la estructura real: self.asientos)
+                if hasattr(taquillero, 'asientos') and asiento_id in taquillero.asientos:
+                    if taquillero.asientos[asiento_id]:
+                        taquillero.asientos[asiento_id]['sid'] = nuevo_sid
+                        print(f"🔑 Taquilla actualizada para asiento {asiento_id} con nuevo sid.")
+                
+                # 4. ACTUALIZACIÓN EN EL ESTADO DEL NOTARIO
+                estado['jugadores'][asiento_id]['sid'] = nuevo_sid
+                notario.guardar_estado(estado)
+                
+                # 5. Si el jugador que se reconecta es el dueño del asiento "1", actualizamos el anfitrión
+                if asiento_id == "1":
+                    taquillero.anfitrion_sid = nuevo_sid
+                
+                # 6. Enviamos ticket de acceso autorizado para saltar el lobby
+                emit('ticket_acceso', {
+                    'autorizado': True,
+                    'asiento_id': asiento_id,
+                    'es_anfitrion': (asiento_id == "1"),
+                    'estado_completo': estado
+                }, to=nuevo_sid)
+                
+                # 7. Sintonizamos la mesa verde de nuevo en su pantalla con todas sus fichas
+                emitir_permisos_vias(estado)
+                print(f"✅ ¡RECONECTADO exitosamente el asiento {asiento_id} en la partida activa!")
+                return
+                
+        print(f"❌ No se pudo procesar la reconexión para el asiento {asiento_id}")
+
     @socketio.on('disconnect')
     def handle_disconnect():
-        print(f"📡 TELEFONISTA: Conexión perdida con {request.sid}")
+        sid_perdido = request.sid
+        print(f"📡 TELEFONISTA: Conexión perdida con {sid_perdido}")
+        
+        # 1. Cargamos el estado para buscar al dueño de la conexión
+        estado = notario.cargar_estado()
+        asiento_afectado = None
+        
+        for asiento_id, datos_jugador in estado.get('jugadores', {}).items():
+            if datos_jugador and datos_jugador.get('sid') == sid_perdido:
+                asiento_afectado = asiento_id
+                break
+                
+        # 2. Si encontramos al jugador que se le cerró la pestaña
+        if asiento_afectado:
+            print(f"⚠️ El jugador del asiento {asiento_afectado} se ha ido a negro.")
+            
+            # Avisamos a toda la mesa mediante un evento global de alerta
+            emit('alerta_desconexion_jugador', {
+                'asiento_id': asiento_afectado,
+                'nombre': estado['jugadores'][asiento_afectado]['nombre'],
+                'mensaje': f"🔌 {estado['jugadores'][asiento_afectado]['nombre']} se ha desconectado. Esperando su regreso..."
+            }, broadcast=True)
 
     @socketio.on('enviar_chat')
     def manejar_chat(data):

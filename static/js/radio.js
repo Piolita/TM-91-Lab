@@ -1,21 +1,33 @@
 // radio.py
 
 // Al cargar la página, verificamos si venimos de un "refresh"
+// radio.js - Carga inicial unificada
 window.onload = () => {
     const asientoGuardado = localStorage.getItem('mi_asiento_dominio'); 
     const enPartida = localStorage.getItem('en_partida');
 
+    console.log("Checking reconexión:", { asientoGuardado, enPartida });
+
+    // Si ya estábamos jugando y tenemos asiento, pedimos reconexión directa
     if (asientoGuardado && enPartida === 'true') {
+        console.log("🔄 Intentando reconectar al asiento:", asientoGuardado);
         socket.emit('reconectar_jugador', { asiento_id: asientoGuardado });
+    } else {
+        // Si no estábamos en partida, solo pedimos ver el lobby normal
+        socket.emit('solicitar_estado_lobby');
     }
 };
 
-const socket = io();
+// radio.js - Declaración segura del Socket
+if (typeof window.socket === 'undefined') {
+    window.socket = io();
+}
+const socket = window.socket;
 
 // Variables de estado local del jugador
 let mi_asiento = localStorage.getItem('mi_asiento_dominio') || null;
 let soy_anfitrion = false;
-let partida_en_curso = false;
+let partida_en_curso = localStorage.getItem('en_partida') === 'true'; // Sincronizado con memoria
 window.mi_asiento = mi_asiento;
 window.fichaSeleccionadaParaTirar = null;
 
@@ -45,36 +57,70 @@ socket.on('estado_lobby_actualizado', (data) => {
     }
 });
 
-// Recibir confirmación de entrada (Solo para mí)
+// Manejo inteligente de acceso y reconexión médica - CORREGIDO
 socket.on('ticket_acceso', (data) => {
     if (data.autorizado) {        
-        // 1. Guardamos la identidad en todas nuestras variables
+        console.log("🎫 ¡Ticket de acceso autorizado por el servidor! Asiento asignado:", data.asiento_id);
+        
+        // Sincronizamos la identidad real que nos da el backend
         window.mi_asiento = data.asiento_id;
         mi_asiento = data.asiento_id;
         soy_anfitrion = data.es_anfitrion;
         
-        // Guardamos en el navegador para que no se olvide tras un refresh
+        // Guardamos el asiento real dictado por el servidor, borrando fantasmas viejos
         localStorage.setItem('mi_asiento_dominio', data.asiento_id);
 
-        // 2. Lógica del Botón de Inicio (Solo si soy anfitrión Y NO ha empezado el juego)
-        const btnInicio = document.getElementById('ui-btn-inicio');
+        const estadoJuego = data.estado_completo;
         
-        if (soy_anfitrion && !partida_en_curso) {
+        // RECONEXIÓN CRUCIAL: Verificamos si el estado de la partida ya está activo EN EL SERVIDOR
+        if (estadoJuego && (estadoJuego.partida_iniciada || estadoJuego.partida_en_curso)) {
+            console.log("🎴 La partida está activa en el servidor. Saltando lobby y forzando entrada a la mesa verde...");
+            
+            localStorage.setItem('en_partida', 'true');
+            partida_en_curso = true;
+            window.estado_actual = estadoJuego;
+            
+            // Forzamos el cambio de pantallas en el HTML
+            const divLobby = document.getElementById('pantalla-lobby') || document.querySelector('.lobby-contenedor');
+            const divMesa = document.getElementById('mesa-verde') || document.getElementById('pantalla-juego');
+            
+            if (divLobby) {
+                const lobbyOverlay = document.getElementById('lobby-overlay');
+                if (lobbyOverlay) lobbyOverlay.style.display = 'none';
+                else divLobby.style.display = 'none';
+            }
+            if (divMesa) divMesa.style.display = 'block';
+
+            if (typeof interfaz !== 'undefined' && typeof interfaz.renderizarPartida === "function") {
+                interfaz.renderizarPartida(estadoJuego);
+            }
+            return; 
+        }
+
+        // ✨ SOLUCIÓN: Si entramos aquí, significa que el servidor dice que NO hay partida activa.
+        // Sincronizamos y limpiamos la memoria del navegador de inmediato.
+        partida_en_curso = false;
+        localStorage.setItem('en_partida', 'false');
+
+        // Si la partida NO ha iniciado, manejamos el botón del anfitrión en el lobby normal
+        const btnInicio = document.getElementById('ui-btn-inicio');
+        if (soy_anfitrion) {
             if (btnInicio) {
+                console.log("🚂 Eres el jefe de estación. Desplegando botón de iniciar partida...");
                 btnInicio.style.display = 'block';
-                // Lo movemos al lobby para que Claudia lo vea gigante
-                const lobby = document.querySelector('.lobby-contenedor');
-                if (lobby) lobby.appendChild(btnInicio);
+            }
+        } else {
+            if (btnInicio) {
+                btnInicio.style.display = 'none'; // Nos aseguramos de ocultarlo si no es el anfitrión
             }
         }
-        // ✅ CORREGIDO: No borrar mi_asiento_dominio para los demás jugadores
-
     } 
     else {
-        console.warn("❌ RECHAZADO: " + data.mensaje);
+        console.warn("❌ RECHAZADO POR EL SERVIDOR: " + data.mensaje);
         alert(data.mensaje); 
-        // Si nos rechazan, mejor limpiar el recuerdo del asiento
         localStorage.removeItem('mi_asiento_dominio');
+        localStorage.setItem('en_partida', 'false');
+        partida_en_curso = false;
     }
 });
 
@@ -176,6 +222,34 @@ socket.on('error_jugada', (data) => {
     window.fichaSeleccionadaParaTirar = null;
 });
 
+// Escuchar cuando un compañero pierde la conexión
+socket.on('alerta_desconexion_jugador', (data) => {
+    console.warn(`🔌 ALERTA: El jugador del asiento ${data.asiento_id} (${data.nombre}) se ha desconectado.`);
+    
+    // 1. Actualizamos el cintillo de noticias superior para que todos lean lo que pasó
+    if (typeof actualizarNoticia === "function") {
+        actualizarNoticia(`🔌 ${data.nombre} (Silla ${data.asiento_id}) se desconectó. Esperando reingreso...`);
+    } else {
+        const textoNoticia = document.getElementById('texto-noticia');
+        if (textoNoticia) {
+            textoNoticia.innerText = `🔌 ${data.nombre} (Silla ${data.asiento_id}) se desconectó. Esperando reingreso...`;
+            textoNoticia.style.color = "#e74c3c"; // Lo pintamos en rojo de advertencia
+        }
+    }
+
+    // 2. Le pedimos al pintor de la interfaz que altere visualmente el indicador de su turno
+    if (typeof interfaz.marcarJugadorDesconectado === "function") {
+        interfaz.marcarJugadorDesconectado(data.asiento_id);
+    } else {
+        // Solución directa si tu interfaz maneja clases visuales en los nombres
+        // Buscamos el elemento visual del turno o nombre de ese asiento y le cambiamos el aspecto
+        const contenedorTurno = document.getElementById(`status-turno-${data.asiento_id}`);
+        if (contenedorTurno) {
+            contenedorTurno.innerHTML = `<span style="color: #95a5a6; font-style: italic;">🔌 Desconectado</span>`;
+        }
+    }
+});
+
 /* ==========================================
    EL OBJETO RADIO (Acciones) 
    ========================================== */
@@ -216,53 +290,73 @@ const radio = {
 };
 
 /* ==========================================
-   📻 SECCIÓN ENVIAR AL SERVIDOR
+   📻 SECCIÓN ENVIAR AL SERVIDOR (Corregida y Unificada)
    ========================================== */
 
-window.addEventListener('load', () => {
-    const asientoPrevio = localStorage.getItem('mi_asiento_dominio');
-    const partidaActiva = localStorage.getItem('partida_en_curso');
-
-    if (asientoPrevio && partidaActiva) {
-        // Le pedimos al servidor el estado actual para saltar el lobby
-        socket.emit('solicitar_estado_lobby'); 
-    }
-});
-
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("🔌 Inicializando interruptores de los botones en la interfaz...");
 
-    // Registro en Lobby
-    document.querySelectorAll('.ui-asiento-btn').forEach(btn => {
+    // 1. Registro en Lobby con rastro de control estricto
+    const botonesAsiento = document.querySelectorAll('.ui-asiento-btn');
+    console.log(`🪑 Se encontraron ${botonesAsiento.length} sillas en el HTML esperando configuración.`);
+
+    botonesAsiento.forEach(btn => {
         btn.onclick = () => {
             const id = btn.getAttribute('data-asiento');
-            const nombre = document.getElementById('ui-input-nombre').value;
-            if (!nombre) return alert("⚠️ Dinos tu nombre primero.");
+            const inputNombre = document.getElementById('ui-input-nombre');
+            
+            console.log("🎯 Clic en botón de asiento detectado. ID Silla:", id);
+
+            if (!inputNombre) {
+                console.error("❌ ERROR: No se encontró el cuadro de texto con ID 'ui-input-nombre' en el HTML.");
+                alert("⚠️ Error interno: Falta el campo de nombre en la interfaz.");
+                return;
+            }
+
+            const nombre = inputNombre.value.trim();
+            console.log("👤 Nombre escrito detectado:", nombre);
+
+            if (!nombre) {
+                alert("⚠️ Dinos tu nombre primero.");
+                return;
+            }
+            
+            console.log("📤 Enviando orden de ocupar asiento a la Telefonista...", { asiento_id: id, nombre: nombre });
             socket.emit('evento_lobby', { asiento_id: id, nombre: nombre });
         };
     });
 
-    
-    // Botón Inicio
+    // 2. Botón Inicio del Anfitrión
     const btnInicio = document.getElementById('ui-btn-inicio');
     if (btnInicio) {
         btnInicio.addEventListener('click', () => {
+            console.log("🚂 ¡El Capitán dio la orden de arrancar el tren!");
             socket.emit('orden_arrancar_juego'); 
             btnInicio.disabled = true;
             btnInicio.innerText = "ARRANCANDO...";
         }, { once: true });
     }
 
+    // 3. Botones de Acción en Mesa Verde (Robar y Pasar)
+    const btnRobar = document.getElementById('btn-robar');
+    if (btnRobar) {
+        btnRobar.onclick = () => {
+            if (typeof radio !== 'undefined' && radio.bloqueo_envio) return;
+            console.log("🎲 Solicitando robar ficha del pozo para el asiento:", window.mi_asiento);
+            socket.emit('solicitar_robo_pozo', { asiento: window.mi_asiento });
+        };
+    }
 
-    // Botones Acción
-    document.getElementById('btn-robar').onclick = () => {
-        if (radio.bloqueo_envio) return;
-        socket.emit('solicitar_robo_pozo', { asiento: window.mi_asiento});
-    };
+    const btnPasar = document.getElementById('btn-pasar');
+    if (btnPasar) {
+        btnPasar.onclick = () => {
+            if (typeof radio !== 'undefined' && radio.bloqueo_envio) return;
+            console.log("⏭️ El jugador decide pasar el turno. Asiento:", window.mi_asiento);
+            socket.emit('pasar_turno', { asiento: window.mi_asiento });
+        };
+    }
 
-    document.getElementById('btn-pasar').onclick = () => {
-        if (radio.bloqueo_envio) return;
-        socket.emit('pasar_turno', { asiento: window.mi_asiento});
-    };
+    console.log("✅ Todos los botones de la interfaz han sido activados correctamente.");
 });
 
 
