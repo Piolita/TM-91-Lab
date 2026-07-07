@@ -84,6 +84,36 @@ const MotorGeometrico = {
             this.aplicarTransform();
         });
 
+        // ==========================================================
+        // 📱 ARRASTRE TÁCTIL PARA CELULARES (Touch Events)
+        // ==========================================================
+        
+        // 1. Tocar la pantalla (Equivalente a mousedown)
+        mesa.addEventListener('touchstart', (e) => {
+            // Ignorar si tocan un botón o una ficha
+            if (e.target.closest('button') || e.target.closest('.nodo-ficha')) return;
+            
+            this.panZoom.isDragging = true;
+            // Usamos e.touches[0] para leer el primer dedo que toca la pantalla
+            this.panZoom.startX = e.touches[0].clientX - this.panZoom.x;
+            this.panZoom.startY = e.touches[0].clientY - this.panZoom.y;
+        }, { passive: true });
+
+        // 2. Levantar el dedo de la pantalla (Equivalente a mouseup)
+        window.addEventListener('touchend', () => {
+            this.panZoom.isDragging = false;
+        });
+
+        // 3. Mover el dedo por la pantalla (Equivalente a mousemove)
+        window.addEventListener('touchmove', (e) => {
+            if (!this.panZoom.isDragging) return;
+            
+            // Actualizamos la posición en base al movimiento del dedo
+            this.panZoom.x = e.touches[0].clientX - this.panZoom.startX;
+            this.panZoom.y = e.touches[0].clientY - this.panZoom.startY;
+            this.aplicarTransform();
+        }, { passive: true });
+
         // Acercar / Alejar (Zoom)
         mesa.addEventListener('wheel', (e) => {
             if (e.target.closest('#panel-comunicaciones')) return;
@@ -103,36 +133,29 @@ const MotorGeometrico = {
         // Ejecutar nuestra prueba visual de fondo
         this.dibujarZonasGuia();
 
-        // INYECCIÓN DE BOTONES DE ZOOM FIJOS (Para Trackpad de Mac)
-        if (!document.getElementById('controles-zoom-fijos')) {
-            const contenedorBotones = document.createElement('div');
-            contenedorBotones.id = 'controles-zoom-fijos';
-            
-            // Estilos CSS directos para dejarlos flotando elegantemente abajo a la derecha
-            contenedorBotones.style.position = 'fixed';
-            contenedorBotones.style.bottom = '120px';
-            contenedorBotones.style.right = '20px';
-            contenedorBotones.style.display = 'flex';
-            contenedorBotones.style.flexDirection = 'column';
-            contenedorBotones.style.gap = '10px';
-            contenedorBotones.style.zIndex = '1000'; // Asegura que queden arriba de las fichas
+        // CONEXIÓN DIRECTA A NUESTRA BOTONERA DE CONTROL GLOBAL
+        const btnIn = document.getElementById('btn-zoom-in');
+        const btnOut = document.getElementById('btn-zoom-out');
+        const btnFull = document.getElementById('ui-btn-fullscreen');
 
-            contenedorBotones.innerHTML = `
-                <button id='btn-zoom-in' style='width: 45px; height: 45px; font-size: 24px; font-weight: bold; background: #222; color: #fff; border: 2px solid #555; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'>+</button>
-                <button id='btn-zoom-out' style='width: 45px; height: 45px; font-size: 24px; font-weight: bold; background: #222; color: #fff; border: 2px solid #555; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'>-</button>
-            `;
-
-            mesa.appendChild(contenedorBotones);
-
-            // Escuchadores de clics conectados a nuestras funciones suaves
-            document.getElementById('btn-zoom-in').addEventListener('click', (e) => {
+        if (btnIn) {
+            btnIn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.zoomInManual();
             });
+        }
 
-            document.getElementById('btn-zoom-out').addEventListener('click', (e) => {
+        if (btnOut) {
+            btnOut.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.zoomOutManual();
+            });
+        }
+
+        if (btnFull) {
+            btnFull.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.alternarPantallaCompleta();
             });
         }
     },
@@ -148,6 +171,25 @@ const MotorGeometrico = {
         // Decremento sutil de 0.08 por cada clic
         this.panZoom.scale = Math.max(this.panZoom.scale - 0.08, 0.3);
         this.aplicarTransform();
+    },
+
+    // FUNCIÓN GLOBAL PARA PANTALLA COMPLETA (Ocultar barras de navegador)
+    alternarPantallaCompleta: function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            // Si no está en pantalla completa, la activamos en todo el cuerpo del juego
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari / iOS */
+                document.documentElement.webkitRequestFullscreen();
+            }
+        } else {
+            // Si ya está activa, la cerramos
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari / iOS */
+                document.webkitExitFullscreen();
+            }
+        }
     },
 
     aplicarTransform: function() {
@@ -215,3 +257,15 @@ const MotorGeometrico = {
         });
     }
 };
+
+// Arrancar los controles en cuanto el documento esté listo
+document.addEventListener("DOMContentLoaded", () => {
+    // Forzamos la inicialización de los botones globales
+    const btnIn = document.getElementById('btn-zoom-in');
+    const btnOut = document.getElementById('btn-zoom-out');
+    const btnFull = document.getElementById('ui-btn-fullscreen');
+    
+    if(btnIn) btnIn.addEventListener('click', (e) => { e.stopPropagation(); MotorGeometrico.zoomInManual(); });
+    if(btnOut) btnOut.addEventListener('click', (e) => { e.stopPropagation(); MotorGeometrico.zoomOutManual(); });
+    if(btnFull) btnFull.addEventListener('click', (e) => { e.stopPropagation(); MotorGeometrico.alternarPantallaCompleta(); });
+});

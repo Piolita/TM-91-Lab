@@ -100,3 +100,32 @@
     50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(241, 196, 15, 0.5); }
     100% { transform: scale(1); }
 }
+
+/* ==========================================================
+   📱 ADAPTACIÓN DE ASIENTOS (GAFETES) PARA CELULARES
+========================================================== */
+@media (max-width: 932px) {
+    .jugador-gafete {
+        min-width: 60px;       /* Reducimos el ancho de 80px a 60px */
+        padding: 3px 6px;      /* Menos relleno interno para compactar */
+        border-radius: 6px;    /* Bordes un poco más sutiles */
+        gap: 2px;
+    }
+
+    .etiqueta-asiento {
+        font-size: 0.5rem;     /* El texto de "SILLA X" disminuye un poco */
+        padding: 1px 4px;
+        border-radius: 2px;
+    }
+
+    .gafete-info span {
+        font-size: 0.65rem;    /* El nombre del jugador se mantiene claro y en negrita */
+    }
+
+    /* Las mini-fichas que indican cuántas piezas le quedan al rival */
+    .ficha-oculta {
+        width: 10px;           /* Reducimos el mazo visible del rival */
+        height: 16px;
+        margin-left: -4px;     /* Las encimamos un poquito más */
+    }
+}

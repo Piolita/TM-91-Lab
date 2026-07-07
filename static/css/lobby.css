@@ -217,3 +217,56 @@
 .pos-4:not(.ocupado):hover {
     transform: translateX(-50%) scale(1.1) !important;
 }
+
+/* ==========================================================
+   🔄 AJUSTES EXCLUSIVOS PARA EL LOBBY EN CELULARES HORIZONTAL
+========================================================== */
+@media (max-width: 932px) and (orientation: landscape) {
+
+    #lobby-overlay {
+        padding: 10px !important;
+        overflow-y: auto !important; /* Si el celular es muy viejito o chico, permitirá deslizar suavemente */
+    }
+
+    .lobby-contenedor {
+        min-width: 90% !important;   /* Dejamos que use el ancho de la pantalla sin forzar 500px */
+        padding: 10px 20px !important; /* Reducimos el colchón interno negro */
+    }
+
+    .lobby-contenedor h1 {
+        font-size: 1.2rem !important; /* Letra del título más pequeña para ganar espacio */
+        margin: 0 0 5px 0 !important;
+    }
+
+    #ui-input-nombre {
+        padding: 6px !important;      /* Caja de texto más delgada */
+        font-size: 0.85rem !important;
+        margin-bottom: 5px !important;
+    }
+
+    #mapa-asientos {
+        width: 170px !important;      /* Encojemos el círculo verde de la mesa de 280px a 170px */
+        height: 170px !important;
+        margin: 15px auto !important;  /* Menos margen arriba y abajo */
+    }
+
+    .centro-mesa {
+        font-size: 0.7rem !important;
+    }
+
+    /* Reducimos el tamaño de los 6 botones de las sillas para que quepan en el círculo pequeño */
+    .ui-asiento-btn {
+        width: 75px !important;       /* De 120px a 75px */
+        min-height: 35px !important;   /* De 60px a 35px */
+        border-radius: 6px !important;
+    }
+
+    .ui-asiento-btn strong {
+        font-size: 0.5rem !important; /* Texto de "SILLA" o "ANFITRIÓN" más compacto */
+    }
+
+    .ui-asiento-btn span {
+        font-size: 0.7rem !important;  /* Nombre del jugador más pequeño */
+    }
+}
+

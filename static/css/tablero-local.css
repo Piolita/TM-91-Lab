@@ -246,3 +246,88 @@
     /* Un pequeño levantamiento para indicar que la ficha es interactiva */
     transform: translateY(-5px);
 }
+
+/* ==========================================================
+   🔄 ADAPTACIÓN DEL TABLERO LOCAL PARA CELULARES
+========================================================== */
+
+/* CASO HORIZONTAL (LANDSCAPE) - El modo ideal de juego */
+@media (max-width: 932px) and (orientation: landscape) {
+    #zona-inferior {
+        height: 46px;          /* ¡La bajamos de 55px a 46px! Más esbelta imposible */
+        width: 80%;            /* La cerramos un poquito para que no estorbe en las esquinas */
+        bottom: 2px;
+    }
+
+    #contenedor-mano-local {
+        padding: 0px 6px;
+        border-width: 1px;
+    }
+
+    /* Reducimos el bloque de la identidad del jugador */
+    #info-jugador-local {
+        width: 68px;           /* Más angosto */
+        padding: 1px;
+        gap: 0px;
+    }
+
+    .etiqueta-asiento {
+        font-size: 0.5rem;     /* Letra un milímetro más chica pero legible */
+    }
+
+    #texto-nombre {
+        font-size: 0.7rem;    
+    }
+
+    #conteo-fichas-local {
+        font-size: 0.8rem;
+    }
+
+    /* Ajustamos la zona central del turno y botones de Robar/Pasar */
+    #status-turno-local {
+        width: 70px;           /* Más compacto */
+        padding: 0 2px;
+    }
+
+    .btn-juego {
+        width: 65px;           /* Botones más estilizados y discretos */
+        padding: 2px 4px;
+        font-size: 0.6rem;    
+    }
+    
+    /* Las fichas en la mano se adaptan para no flotar tan alto */
+    .ficha.jugable {
+        transform: translateY(-10px) scale(1.02); /* Movimiento elegante y sutil */
+    }
+    
+    .ficha.jugable:hover {
+        transform: translateY(-3px) scale(1.01);
+    }
+}
+
+/* CASO VERTICAL (PORTRAIT) - Por si miran el celular parados */
+@media (max-width: 480px) and (orientation: portrait) {
+    #zona-inferior {
+        height: 50px;          /* Súper compacto */
+        width: 95%;            /* Ocupa casi todo el ancho disponible */
+        bottom: 75px;          /* Lo subimos un poco para dejarle su espacio abajo a la botonera global */
+    }
+
+    #info-jugador-local {
+        width: 65px;
+    }
+
+    #texto-nombre {
+        font-size: 0.7rem;
+    }
+
+    #status-turno-local {
+        width: 70px;
+    }
+
+    .btn-juego {
+        width: 65px;
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+}

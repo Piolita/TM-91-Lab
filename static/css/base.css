@@ -136,3 +136,23 @@ body {
     from { transform: scale(0.8); opacity: 0; }
     to   { transform: scale(1.1); opacity: 1; }
 }
+
+/* ==========================================================
+   📱 REDUCCIÓN DE FICHAS EN CELULARES
+========================================================== */
+@media (max-width: 932px) {
+    :root {
+        /* Reducimos el tamaño de la ficha un 30% para que quepan perfecto en la mano */
+        --ficha-ancho: 28px;
+        --ficha-alto: 49px;
+        --ficha-radio: 5px;
+    }
+
+    .ficha {
+        font-size: 1.05rem !important; /* Ajustamos el número para que no se salga de la ficha */
+    }
+
+    .ficha::before {
+        height: 1px; /* La línea divisoria del medio se vuelve más fina */
+    }
+}
